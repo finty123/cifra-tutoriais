@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { X, Play, Clock, ChevronRight } from 'lucide-react';
-import { Plyr } from "plyr-react"; // Adicionamos as chaves aqui
+import Plyr from 'plyr-react'; 
+import "plyr-react/dist/plyr.css"; // Garanta que o CSS também está aqui
 import "plyr/dist/plyr.css";
 
 // ... restante do código permanece igual
