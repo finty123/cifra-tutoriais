@@ -52,12 +52,12 @@ export default function Home() {
           <h1 className="text-7xl lg:text-9xl font-black tracking-tighter text-white italic">
             RETENÇÃO <br /> <span className="text-blue-600">START</span>
           </h1>
-          <p className="text-slate-400 text-lg max-w-2xl font-medium">Arquivos e tutoriais estratégicos para a sua operação.</p>
+          <p className="text-slate-400 text-lg max-w-2xl font-medium">Acesse o conteúdo para entender sobre as ferramentas da retanção.</p>
         </div>
       </section>
 
       <div className="px-8 lg:px-20 space-y-12">
-        <h3 className="text-2xl font-black italic text-white uppercase border-b border-white/5 pb-6">Módulos de <span className="text-blue-500">Aprendizado</span></h3>
+        <h3 className="text-2xl font-black italic text-white uppercase border-b border-white/5 pb-6">Módulos  <span className="text-blue-500"> disponíveis</span></h3>
 
         {/* GRID AJUSTADO PARA CAPAS VERTICAIS (MAIS COLUNAS) */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
