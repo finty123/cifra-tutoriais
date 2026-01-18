@@ -1,11 +1,9 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { X, Play, Clock, ChevronRight } from 'lucide-react';
+// Importação corrigida para evitar erros de exportação no Webpack
 import Plyr from 'plyr-react'; 
-import "plyr-react/dist/plyr.css"; // Garanta que o CSS também está aqui
-import "plyr/dist/plyr.css";
-
-// ... restante do código permanece igual
+import "plyr/dist/plyr.css"; 
 
 export function LessonModal({ modulo, isOpen, onClose }: any) {
   const [aulaAtiva, setAulaAtiva] = useState<any>(null);
@@ -37,7 +35,7 @@ export function LessonModal({ modulo, isOpen, onClose }: any) {
     } as any,
     options: {
       controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-      hideControls: true,
+      hideControls: false,
       resetOnEnd: true,
     }
   };
@@ -52,7 +50,9 @@ export function LessonModal({ modulo, isOpen, onClose }: any) {
         <div className="w-full lg:w-[70%] bg-black flex flex-col border-r border-white/5">
           <div className="aspect-video bg-black plyr-blue-theme">
             {videoId ? (
-              <Plyr {...plyrProps} />
+              <div className="w-full h-full">
+                <Plyr {...plyrProps} />
+              </div>
             ) : (
               <div className="flex items-center justify-center h-full text-slate-600 font-bold uppercase text-[10px] tracking-widest">
                 Selecione uma aula na lista ao lado
