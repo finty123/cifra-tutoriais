@@ -4,18 +4,33 @@
 
 :root {
   --color-background: #020617;
+  --color-surface: #0f172a;
+  --color-primary: #3b82f6;
 }
 
 body {
-  background: #020617;
+  background-color: var(--color-background);
   color: #f8fafc;
-  /* Gradiente simplificado para evitar erro de sintaxe */
-  background-image: radial-gradient(circle at top left, #1e1b4b 0%, #020617 100%);
+  /* Gradiente mais moderno e focado */
+  background-image: 
+    radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, #0c4a6e 0%, transparent 40%),
+    linear-gradient(to bottom, #020617, #020617);
   background-attachment: fixed;
   min-height: 100vh;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #020617; }
-::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+/* Melhorar a barra de rolagem (Scrollbar Tech) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
