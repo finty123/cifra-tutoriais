@@ -40,14 +40,29 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 <h3 className="text-white font-bold text-lg">{aula.titulo}</h3>
               </div>
 
-              {/* Video Player Responsivo */}
-              <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 shadow-inner">
-                <iframe
-                  src={aula.videoUrl.replace("watch?v=", "embed/")}
-                  className="w-full h-full"
-                  allowFullScreen
-                />
-              </div>
+              {/* Video Player Inteligente */}
+<div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 shadow-inner">
+  {aula.videoUrl.includes('youtube.com') || aula.videoUrl.includes('youtu.be') ? (
+    <iframe
+      src={aula.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+      className="w-full h-full"
+      allowFullScreen
+    />
+  ) : aula.videoUrl.endsWith('.mp4') ? (
+    <video 
+      src={aula.videoUrl} 
+      controls 
+      className="w-full h-full"
+    />
+  ) : (
+    /* Caso seja Vimeo ou outro Embed direto */
+    <iframe
+      src={aula.videoUrl}
+      className="w-full h-full"
+      allowFullScreen
+    />
+  )}
+</div>
 
               {/* LEGENDA DA AULA (Aparece aqui) */}
               {aula.descricao && (
