@@ -20,11 +20,13 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   useEffect(() => {
     if (!isOpen || !iframeRef.current) return;
 
+    let player: any = null;
+
     const script = document.createElement('script');
     script.src = "https://player.vimeo.com/api/player.js";
     script.onload = () => {
       // @ts-ignore
-      const player = new window.Vimeo.Player(iframeRef.current);
+      player = new window.Vimeo.Player(iframeRef.current);
       playerRef.current = player;
 
       // Configurações para iniciar corretamente
@@ -40,7 +42,15 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
     };
     document.body.appendChild(script);
 
-    return () => { if (playerRef.current) playerRef.current.unload(); };
+    // CLEANUP: Mata o player atual ao fechar o modal ou trocar de aula
+    return () => {
+      if (player) {
+        player.destroy().catch(() => {});
+      }
+      playerRef.current = null;
+      setIsPlaying(false);
+      setProgress(0);
+    };
   }, [isOpen, aulaAtivaIdx]);
 
   if (!isOpen || !modulo) return null;
@@ -151,7 +161,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 <p className="text-slate-400 text-lg leading-relaxed italic">{aulaAtual?.descricao}</p>
               </div>
               <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg shrink-0 flex items-center">
-                <CheckCircle2 size={18} className="mr-2" />  Pause antes de mudar de vídeo
+                <CheckCircle2 size={18} className="mr-2" /> Concluir Aula
               </button>
             </div>
           </div>
@@ -164,7 +174,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 <button
                   key={aula.id}
                   onClick={() => setAulaAtivaIdx(idx)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-[24px] border transition-all ${aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-400' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-[24px] border transition-all ${aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-400 shadow-md' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-slate-500'}`}>
                     {String(idx + 1).padStart(2, '0')}
