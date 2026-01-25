@@ -4,8 +4,11 @@ import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Play, Pause } from 'luci
 import dynamic from 'next/dynamic';
 import { Modulo } from '../types';
 
-// Importação dinâmica para não quebrar o SSR do Next.js
-const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
+// Importação dinâmica corrigida para evitar "Module not found"
+const ReactPlayer = dynamic(() => import('react-player'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-slate-900 animate-pulse" />
+});
 
 interface LessonModalProps {
   modulo: Modulo | null;
@@ -50,19 +53,23 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             {/* CONTAINER DO PLAYER */}
             <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-2xl group">
                 <ReactPlayer
+                  key={aulaAtual?.id}
                   url={aulaAtual?.videoUrl}
                   width="100%"
                   height="100%"
                   playing={playing}
                   muted={muted}
-                  playbackRate={1.25} // VELOCIDADE 1.25x FIXA
+                  playbackRate={1.25} // VELOCIDADE PADRÃO 1.25x
                   onProgress={(state) => setPlayed(state.played)}
-                  config={{ vimeo: { playerOptions: { background: 0 } } }}
+                  config={{ 
+                    vimeo: { playerOptions: { background: 0 } },
+                    youtube: { playerVars: { modestbranding: 1 } }
+                  }}
                 />
 
-                {/* OVERLAY DE CONTROLES REAIS */}
+                {/* OVERLAY DE CONTROLES */}
                 <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-full h-1.5 bg-white/20 rounded-full mb-4">
+                    <div className="w-full h-1.5 bg-white/20 rounded-full mb-4 overflow-hidden cursor-pointer">
                         <div className="h-full bg-blue-600 shadow-[0_0_15px_#2563eb]" style={{ width: `${played * 100}%` }} />
                     </div>
 
@@ -97,7 +104,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             </div>
           </div>
 
-          {/* LISTA LATERAL */}
+          {/* CRONOGRAMA */}
           <div className="flex-1 bg-[#0a0f1d]/60 border-l border-white/5 flex flex-col overflow-hidden text-left">
             <div className="p-6 border-b border-white/5 text-[10px] font-black text-blue-500 uppercase tracking-widest">Próximas Aulas</div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
