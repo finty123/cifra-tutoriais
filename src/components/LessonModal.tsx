@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, PlayCircle } from 'lucide-react';
 import Plyr from "plyr-react";
 import "plyr/dist/plyr.css";
@@ -13,32 +13,42 @@ interface LessonModalProps {
 
 export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
 
-  if (!isOpen || !modulo) return null;
+  // Garante que o componente está montado no cliente
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Reseta para a primeira aula sempre que o modal abrir com um novo módulo
+  useEffect(() => {
+    if (isOpen) setAulaAtivaIdx(0);
+  }, [isOpen, modulo]);
+
+  if (!isOpen || !modulo || !isMounted) return null;
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // Identifica se o vídeo é YouTube ou Vimeo e retorna o ID e o Provider correto
+  // Se por algum motivo a aula não existir, evita o crash
+  if (!aulaAtual) return null;
+
   const getVideoSource = (url: string) => {
     if (!url) return { src: '', provider: 'html5' as const };
 
-    // Lógica para YouTube
     const ytMatch = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
     if (ytMatch && ytMatch[2].length === 11) {
       return { src: ytMatch[2], provider: 'youtube' as const };
     }
 
-    // Lógica para Vimeo
     const vimeoMatch = url.match(/(?:vimeo\.com\/|video\/)(\d+)/);
     if (vimeoMatch) {
       return { src: vimeoMatch[1], provider: 'vimeo' as const };
     }
 
-    // Fallback para links diretos (caso você use algum servidor MP4 no futuro)
     return { src: url, provider: 'html5' as const };
   };
 
-  const videoData = getVideoSource(aulaAtual?.videoUrl || '');
+  const videoData = getVideoSource(aulaAtual.videoUrl || '');
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
@@ -46,7 +56,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
       
       <div className="relative bg-[#0f172a] border border-blue-500/20 w-full max-w-[1400px] h-full md:h-[90vh] md:rounded-[40px] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(37,99,235,0.1)]">
         
-        {/* Header Tecnológico */}
+        {/* Header */}
         <div className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-[#0f172a]">
           <div className="flex items-center gap-4 text-left">
             <div className="p-2.5 bg-blue-600/20 rounded-xl border border-blue-500/30">
@@ -66,20 +76,19 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
-          {/* ÁREA DO VÍDEO EXPANDIDA */}
           <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar bg-[#0f172a]">
             
             <div className="relative group w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
                 
-                {/* MARCA D'ÁGUA RETENÇÃO START */}
                 <div className="absolute top-6 right-8 z-[100] pointer-events-none select-none opacity-50 group-hover:opacity-100 transition-opacity">
                     <span className="text-white font-black italic text-sm tracking-tighter uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                         Retenção <span className="text-blue-500">Start</span>
                     </span>
                 </div>
 
+                {/* A KEY É O SEGREDO: Ela força o React a destruir e recriar o player ao trocar de aula */}
                 <Plyr
-                  key={aulaAtual?.id}
+                  key={`${modulo.id}-${aulaAtual.id}`} 
                   source={{
                     type: 'video',
                     sources: [{ src: videoData.src, provider: videoData.provider }],
@@ -94,26 +103,25 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 />
             </div>
 
-            {/* TEXTOS - ABAIXO DO VÍDEO */}
             <div className="space-y-4 text-left">
                 <div className="space-y-1">
                     <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
                         <span className="w-6 h-[1px] bg-blue-400" /> Conteúdo Exclusivo
                     </p>
                     <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter">
-                        {aulaAtual?.titulo}
+                        {aulaAtual.titulo}
                     </h3>
                 </div>
 
                 <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5 backdrop-blur-sm">
                     <p className="text-slate-400 text-sm md:text-base leading-relaxed">
-                        {aulaAtual?.descricao}
+                        {aulaAtual.descricao}
                     </p>
                 </div>
             </div>
           </div>
 
-          {/* CRONOGRAMA LATERAL */}
+          {/* CRONOGRAMA */}
           <div className="flex-1 bg-[#0a0f1d]/50 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5">
                 <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] text-left">Cronograma</h4>
@@ -146,14 +154,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
       <style jsx global>{`
         :root { --plyr-color-main: #2563eb; }
-        
-        .plyr--video { 
-          height: 100%; 
-          border-radius: 32px; 
-          background: #000;
-        }
-
-        /* Fix: Força os controles para a parte inferior */
+        .plyr--video { height: 100%; border-radius: 32px; background: #000; }
         .plyr--video .plyr__controls {
           position: absolute;
           bottom: 0;
@@ -163,7 +164,6 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
           background: linear-gradient(transparent, rgba(0,0,0,0.85)) !important;
           z-index: 5;
         }
-
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
       `}</style>
