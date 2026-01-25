@@ -18,16 +18,17 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-const getDirectVideoUrl = (url: string) => {
-  if (!url) return '';
-  if (url.includes('drive.google.com')) {
-    const videoId = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
+  // FUNÇÃO ATUALIZADA PARA DROPBOX
+  const getDirectVideoUrl = (url: string) => {
+    if (!url) return '';
     
-    // FORMATO DE PREVIEW (Geralmente carrega mais rápido e sem bloqueio de download)
-    return `https://www.google.com/get_video_info?docid=${videoId}&res=direct`;
-  }
-  return url;
-};
+    // Se for link do Dropbox, remove o final (?dl=0 ou ?dl=1) e força o ?raw=1
+    if (url.includes('dropbox.com')) {
+      return url.split('?')[0] + '?raw=1';
+    }
+    
+    return url;
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
@@ -42,7 +43,7 @@ const getDirectVideoUrl = (url: string) => {
                 <PlayCircle className="text-blue-400" size={22} />
             </div>
             <div>
-                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5 text-left">Módulo em exibição</p>
+                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5 text-left">Retenção Start</p>
                 <h2 className="text-white font-black italic uppercase text-sm md:text-base tracking-tight text-left">
                     {modulo.titulo} <span className="text-blue-500/50 mx-2">//</span> <span className="text-slate-400">Aula {aulaAtivaIdx + 1}</span>
                 </h2>
@@ -71,7 +72,10 @@ const getDirectVideoUrl = (url: string) => {
                   key={aulaAtual?.id}
                   source={{
                     type: 'video',
-                    sources: [{ src: getDirectVideoUrl(aulaAtual?.videoUrl || ''), type: 'video/mp4' }],
+                    sources: [{ 
+                        src: getDirectVideoUrl(aulaAtual?.videoUrl || ''), 
+                        type: 'video/mp4' 
+                    }],
                   }}
                   options={{
                     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
@@ -84,16 +88,16 @@ const getDirectVideoUrl = (url: string) => {
             {/* TEXTOS - ABAIXO DO VÍDEO */}
             <div className="space-y-4 text-left">
                 <div className="space-y-1">
-                    <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
+                    <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 text-left">
                         <span className="w-6 h-[1px] bg-blue-400" /> Conteúdo Exclusivo
                     </p>
-                    <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter">
+                    <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter text-left">
                         {aulaAtual?.titulo}
                     </h3>
                 </div>
 
                 <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5">
-                    <p className="text-slate-400 text-sm md:text-base leading-relaxed">
+                    <p className="text-slate-400 text-sm md:text-base leading-relaxed text-left">
                         {aulaAtual?.descricao}
                     </p>
                 </div>
@@ -103,7 +107,7 @@ const getDirectVideoUrl = (url: string) => {
           {/* CRONOGRAMA LATERAL */}
           <div className="flex-1 bg-[#0a0f1d]/50 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5">
-                <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Cronograma</h4>
+                <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] text-left">Cronograma</h4>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {modulo.aulas.map((aula, idx) => (
@@ -140,6 +144,7 @@ const getDirectVideoUrl = (url: string) => {
           background: #000;
         }
 
+        /* Fix: Ancoragem dos controles na parte inferior */
         .plyr--video .plyr__controls {
           position: absolute;
           bottom: 0;
