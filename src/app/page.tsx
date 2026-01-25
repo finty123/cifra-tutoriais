@@ -1,10 +1,11 @@
 "use client";
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { LogOut, ShieldCheck } from 'lucide-react';
 import { Modulo } from '../types';
 
-// Importação dinâmica: força esses componentes a carregarem APENAS no navegador
+// Importação dinâmica para evitar erro de "document is not defined" no build
 const ModuleCard = dynamic(() => import('../components/ModuleCard').then(mod => mod.ModuleCard), { 
   ssr: false,
   loading: () => <div className="h-64 bg-white/5 animate-pulse rounded-[30px]" />
@@ -15,6 +16,7 @@ const LessonModal = dynamic(() => import('../components/LessonModal').then(mod =
 });
 
 export default function Home() {
+  const router = useRouter();
   const [selectedModulo, setSelectedModulo] = useState<Modulo | null>(null);
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [isClient, setIsClient] = useState(false);
@@ -23,6 +25,14 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+
+    // VERIFICAÇÃO DE LOGIN (Proteção de Rota)
+    const isLogged = localStorage.getItem("@retencao-start:isLogged");
+    if (!isLogged) {
+      router.push("/login");
+      return;
+    }
+
     const carregarModulos = () => {
       if (typeof window !== "undefined") {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -39,7 +49,7 @@ export default function Home() {
     carregarModulos();
     window.addEventListener('storage', carregarModulos);
     return () => window.removeEventListener('storage', carregarModulos);
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -49,7 +59,7 @@ export default function Home() {
     }
   };
 
-  // Previne erros de hidratação no servidor
+  // Enquanto verifica o login ou monta o cliente, renderiza um fundo neutro
   if (!isClient) {
     return <div className="min-h-screen bg-[#020617]" />;
   }
@@ -77,7 +87,6 @@ export default function Home() {
 
       {/* HERO SECTION TECH */}
       <section className="relative min-h-[60vh] md:h-[70vh] flex items-center px-6 lg:px-20 pt-32 md:pt-24">
-        {/* Glow de fundo para aspecto tecnológico */}
         <div className="absolute top-1/2 left-0 -translate-y-1/2 w-72 h-72 bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
         
         <div className="relative z-20 max-w-4xl space-y-6">
@@ -99,7 +108,7 @@ export default function Home() {
             <div className="flex-1 h-[1px] bg-white/5" />
         </div>
 
-        {/* Grid Adaptável */}
+        {/* Grid Adaptável: 1 col no mobile, 2 no tablet, até 5 no desktop */}
         <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-10">
           {modulos.length > 0 ? (
             modulos.map((modulo) => (
