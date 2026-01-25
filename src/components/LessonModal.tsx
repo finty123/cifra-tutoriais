@@ -16,11 +16,24 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // Função para formatar o link do player
+  // Função aprimorada para Player Limpo (Visual Premium)
   const getEmbedUrl = (url: string) => {
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      return url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/");
+    if (!url) return '';
+    
+    // Extrai o ID do vídeo para garantir que os parâmetros funcionem
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+
+    if (videoId) {
+      // Parâmetros:
+      // rel=0: Não mostra vídeos de outros canais ao pausar
+      // modestbranding=1: Remove a logo grande do YouTube
+      // showinfo=0: Esconde o título (descontinuado em alguns casos, mas ajuda no layout)
+      // iv_load_policy=3: Remove anotações sobre o vídeo
+      return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3&autoplay=0`;
     }
+    
     return url;
   };
 
@@ -48,18 +61,20 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
           </button>
         </div>
 
-        {/* Layout Grid: Player vs Lista */}
+        {/* Layout Grid */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
-          {/* LADO ESQUERDO: PLAYER E INFO (Scrollable) */}
+          {/* LADO ESQUERDO: PLAYER */}
           <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
-            <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-white/10 shadow-2xl">
+            {/* Container do Player com Brilho Azul Neon */}
+            <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.15)] transition-all">
                 {aulaAtual?.videoUrl.endsWith('.mp4') ? (
                     <video src={aulaAtual.videoUrl} controls className="w-full h-full" />
                 ) : (
                     <iframe 
                         src={getEmbedUrl(aulaAtual?.videoUrl || '')} 
                         className="w-full h-full" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen 
                     />
                 )}
@@ -79,7 +94,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             </div>
           </div>
 
-          {/* LADO DIREITO: PLAYLIST (Fixa no Desktop) */}
+          {/* LADO DIREITO: PLAYLIST */}
           <div className="flex-1 bg-black/20 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5 bg-white/[0.01]">
                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Conteúdo do Módulo</h4>
