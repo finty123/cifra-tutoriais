@@ -8,25 +8,44 @@ import { Modulo } from '../types';
 export default function Home() {
   const [selectedModulo, setSelectedModulo] = useState<Modulo | null>(null);
   const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [isClient, setIsClient] = useState(false); // Adicionado para segurança de hidratação
+
   const STORAGE_KEY = '@retencao-start:modulos';
 
   useEffect(() => {
+    // Avisa que já estamos no navegador
+    setIsClient(true);
+
     const carregarModulos = () => {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setModulos(JSON.parse(saved));
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            setModulos(JSON.parse(saved));
+          } catch (e) {
+            console.error("Erro ao ler módulos", e);
+          }
+        }
       }
     };
+
     carregarModulos();
     window.addEventListener('storage', carregarModulos);
     return () => window.removeEventListener('storage', carregarModulos);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('@retencao-start:isLogged');
-    localStorage.removeItem('@retencao-start:role');
-    window.location.href = "/login";
+    if (typeof window !== "undefined") {
+      localStorage.removeItem('@retencao-start:isLogged');
+      localStorage.removeItem('@retencao-start:role');
+      window.location.href = "/login";
+    }
   };
+
+  // Se ainda estiver no servidor, renderiza um fundo escuro básico para evitar erros de "document"
+  if (!isClient) {
+    return <div className="min-h-screen bg-[#020617]" />;
+  }
 
   return (
     <div className="min-h-screen bg-[#020617] pb-20 overflow-x-hidden">
@@ -51,7 +70,6 @@ export default function Home() {
 
       {/* HERO SECTION RESPONSIVA */}
       <section className="relative min-h-[60vh] md:h-[70vh] flex items-center px-4 sm:px-8 lg:px-20 pt-32 md:pt-24">
-        {/* Efeito de luz de fundo */}
         <div className="absolute top-1/2 left-0 -translate-y-1/2 w-64 h-64 bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
         
         <div className="relative z-20 max-w-4xl space-y-4 md:space-y-6">
@@ -73,7 +91,6 @@ export default function Home() {
             <div className="flex-1 h-[1px] bg-white/5" />
         </div>
 
-        {/* Ajuste de colunas para Mobile (1), Tablet (2), Desktop (3/4/5) */}
         <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8">
           {modulos.length > 0 ? (
             modulos.map((modulo) => (
