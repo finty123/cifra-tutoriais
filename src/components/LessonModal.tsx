@@ -48,10 +48,17 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
-          {/* LADO ESQUERDO: PLAYER (SEM ZOOM) */}
           <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
             
-            <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-blue-600/30 shadow-[0_0_40px_rgba(37,99,235,0.3)]">
+            {/* CONTAINER DO PLAYER COM OVERLAYS DE BLOQUEIO */}
+            <div className="relative aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-blue-600/30 shadow-[0_0_40px_rgba(37,99,235,0.3)] group">
+                
+                {/* BLOQUEADOR DE TÍTULO E BOTÃO COMPARTILHAR (Topo) */}
+                <div className="absolute top-0 left-0 w-full h-20 z-10 bg-transparent pointer-events-none md:pointer-events-auto" />
+                
+                {/* BLOQUEADOR DE LOGO "WATCH ON YOUTUBE" (Canto Inferior) */}
+                <div className="absolute bottom-0 right-0 w-40 h-16 z-10 bg-transparent pointer-events-none md:pointer-events-auto" />
+
                 <Plyr
                   source={{
                     type: 'video',
@@ -60,26 +67,40 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                   options={{
                     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
                     settings: ['speed'],
-                    speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-                    // youtube: rel=0 e iv_load_policy=3 removem as recomendações e anotações
-                    youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 }
+                    speed: { selected: 1, options: [0.5, 1, 1.25, 1.5, 2] },
+                    // Parametros para forçar o player a ser o mais limpo possível
+                    youtube: { 
+                      noCookie: true, 
+                      rel: 0, 
+                      showinfo: 0, 
+                      iv_load_policy: 3, 
+                      modestbranding: 1,
+                      disablekb: 1 // Desativa atalhos de teclado do YT
+                    }
                   }}
                 />
             </div>
 
-            {/* Visual Azul Customizado */}
             <style jsx global>{`
-              :root {
-                --plyr-color-main: #2563eb; 
-              }
-              .plyr__video-wrapper {
-                background: black;
-              }
-              /* Garante que o iframe ocupe 100% sem zoom ou cortes */
+              :root { --plyr-color-main: #2563eb; }
+              
+              /* ESCONDE O TÍTULO E BOTÕES DO YT NO HOVER/PAUSE */
               .plyr__video-embed iframe {
-                top: 0 !important;
-                height: 100% !important;
-                transform: none !important;
+                pointer-events: none; /* Bloqueia cliques diretos no iframe do YouTube */
+              }
+              
+              /* Permite clicar apenas nos controles do Plyr */
+              .plyr__controls {
+                z-index: 20;
+              }
+
+              /* Ajuste para remover as recomendações visíveis em alguns navegadores */
+              .plyr__video-wrapper::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                box-shadow: inset 0 0 100px rgba(0,0,0,0.5); /* Vinheta para esconder detalhes das bordas */
               }
             `}</style>
             
@@ -88,14 +109,17 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                     {aulaAtual?.titulo}
                 </h3>
                 <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5">
-                    <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">
+                    <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium italic">
+                        Plataforma Retenção Start — Conteúdo Exclusivo
+                    </p>
+                    <p className="text-slate-400 mt-2 text-sm md:text-base leading-relaxed">
                         {aulaAtual?.descricao}
                     </p>
                 </div>
             </div>
           </div>
 
-          {/* LADO DIREITO: LISTA */}
+          {/* LISTA DE AULAS */}
           <div className="flex-1 bg-black/20 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5 bg-white/[0.01]">
                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aulas</h4>
