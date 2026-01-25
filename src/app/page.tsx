@@ -35,7 +35,7 @@ export default function Home() {
         const { data, error } = await supabase
           .from('modulos')
           .select(`*, aulas (*)`)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: true });
 
         if (error) throw error;
 
