@@ -1,7 +1,11 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
-import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Settings, Play, Pause, Maximize } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Modulo } from '../types';
+
+// Importação dinâmica para não quebrar o SSR do Next.js
+const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
 
 interface LessonModalProps {
   modulo: Modulo | null;
@@ -11,75 +15,12 @@ interface LessonModalProps {
 
 export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const playerRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!isOpen || !iframeRef.current) return;
-
-    // Função para carregar o script do Vimeo apenas uma vez
-    const script = document.createElement('script');
-    script.src = "https://player.vimeo.com/api/player.js";
-    script.async = true;
-    
-    script.onload = () => {
-      if (!iframeRef.current) return;
-      
-      // @ts-ignore
-      const player = new window.Vimeo.Player(iframeRef.current);
-      playerRef.current = player;
-
-      player.on('timeupdate', (data: any) => {
-        setProgress(data.percent * 100);
-      });
-
-      player.on('play', () => setIsPlaying(true));
-      player.on('pause', () => setIsPlaying(false));
-      
-      // Forçar 1.25x de velocidade
-      player.setPlaybackRate(1.25).catch(() => {
-        console.log("Velocidade 1.25x requer plano Vimeo Plus+");
-      });
-    };
-
-    document.body.appendChild(script);
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.unload();
-      }
-    };
-  }, [isOpen, aulaAtivaIdx]);
+  const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [played, setPlayed] = useState(0);
 
   if (!isOpen || !modulo) return null;
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
-
-  const togglePlay = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede conflitos de clique
-    if (!playerRef.current) return;
-    isPlaying ? playerRef.current.pause() : playerRef.current.play();
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!playerRef.current) return;
-    const newMuteState = !isMuted;
-    playerRef.current.setMuted(newMuteState);
-    setIsMuted(newMuteState);
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = x / rect.width;
-    playerRef.current.getDuration().then((duration: number) => {
-      playerRef.current.setCurrentTime(duration * percentage);
-    });
-  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
@@ -106,65 +47,59 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 bg-[#0f172a] custom-scrollbar">
             
+            {/* CONTAINER DO PLAYER */}
             <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-2xl group">
-                <iframe
-                  ref={iframeRef}
-                  key={aulaAtual?.id}
-                  // ADICIONADO: &api=1 e removido o pointer-events-none para permitir o play inicial
-                  src={`https://player.vimeo.com/video/${aulaAtual?.videoUrl.split('/').pop()}?autoplay=1&controls=0&api=1&background=0`}
-                  className="absolute inset-0 w-full h-full border-0"
-                  allow="autoplay; fullscreen"
+                <ReactPlayer
+                  url={aulaAtual?.videoUrl}
+                  width="100%"
+                  height="100%"
+                  playing={playing}
+                  muted={muted}
+                  playbackRate={1.25} // VELOCIDADE 1.25x FIXA
+                  onProgress={(state) => setPlayed(state.played)}
+                  config={{ vimeo: { playerOptions: { background: 0 } } }}
                 />
 
-                {/* OVERLAY DE CONTROLES */}
-                <div className="absolute inset-0 flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-black/90 via-transparent to-transparent z-20">
-                    
-                    <div className="w-full h-2 bg-white/10 rounded-full mb-6 cursor-pointer group/progress relative" onClick={handleSeek}>
-                        <div className="h-full bg-blue-600 rounded-full shadow-[0_0_15px_#2563eb]" style={{ width: `${progress}%` }} />
+                {/* OVERLAY DE CONTROLES REAIS */}
+                <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-full h-1.5 bg-white/20 rounded-full mb-4">
+                        <div className="h-full bg-blue-600 shadow-[0_0_15px_#2563eb]" style={{ width: `${played * 100}%` }} />
                     </div>
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6">
-                            <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-all z-30">
-                                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
+                            <button onClick={() => setPlaying(!playing)} className="text-white hover:text-blue-400">
+                                {playing ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
                             </button>
-                            
-                            <button onClick={toggleMute} className="text-white hover:text-blue-400 transition-colors z-30">
-                                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                            <button onClick={() => setMuted(!muted)} className="text-white hover:text-blue-400">
+                                {muted ? <VolumeX size={24} /> : <Volume2 size={24} />}
                             </button>
                         </div>
-
-                        <div className="flex items-center gap-6">
-                            <div className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded text-[10px] text-blue-400 font-black tracking-widest">1.25X</div>
-                            <span className="text-blue-500 font-black italic text-sm tracking-tighter uppercase hidden md:block">
-                                RETENÇÃO <span className="text-white">START</span>
-                            </span>
+                        <div className="flex items-center gap-4">
+                            <span className="bg-blue-600/20 border border-blue-500/30 px-2 py-1 rounded text-[10px] text-blue-400 font-black">1.25X SPEED</span>
+                            <span className="text-blue-500 font-black italic text-sm tracking-tighter uppercase">RETENÇÃO START</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* INFO E DESCRIÇÃO */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/[0.02] p-8 rounded-[32px] border border-white/5 text-left">
-              <div className="flex-1">
-                <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter leading-none mb-4">
-                  {aulaAtual?.titulo}
-                </h3>
-                <p className="text-slate-400 text-lg leading-relaxed italic opacity-80">
-                  {aulaAtual?.descricao}
-                </p>
+            <div className="text-left space-y-4">
+              <div className="bg-white/[0.02] p-8 rounded-[32px] border border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter leading-none mb-4">{aulaAtual?.titulo}</h3>
+                  <p className="text-slate-400 text-lg leading-relaxed italic opacity-80">{aulaAtual?.descricao}</p>
+                </div>
+                <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg transition-all shrink-0">
+                  <CheckCircle2 size={18} className="inline mr-2" /> Concluir Aula
+                </button>
               </div>
-              <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg shrink-0">
-                Concluir Aula
-              </button>
             </div>
           </div>
 
-          {/* CRONOGRAMA */}
-          <div className="flex-1 bg-[#0a0f1d]/60 border-l border-white/5 flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-white/5 text-left">
-              <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Próximas Aulas</h4>
-            </div>
+          {/* LISTA LATERAL */}
+          <div className="flex-1 bg-[#0a0f1d]/60 border-l border-white/5 flex flex-col overflow-hidden text-left">
+            <div className="p-6 border-b border-white/5 text-[10px] font-black text-blue-500 uppercase tracking-widest">Próximas Aulas</div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
               {modulo.aulas.map((aula, idx) => (
                 <button
@@ -177,9 +112,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-slate-500'}`}>
                     {String(idx + 1).padStart(2, '0')}
                   </div>
-                  <p className={`text-xs font-black uppercase truncate text-left flex-1 ${aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'}`}>
-                    {aula.titulo}
-                  </p>
+                  <p className={`text-xs font-black uppercase truncate flex-1 ${aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'}`}>{aula.titulo}</p>
                 </button>
               ))}
             </div>
