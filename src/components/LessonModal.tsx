@@ -5,10 +5,9 @@ import dynamic from 'next/dynamic';
 import "plyr/dist/plyr.css";
 import { Modulo } from '../types';
 
-// Carrega o Player apenas no lado do cliente para evitar o erro de exceção
+// Carregamento dinâmico sem SSR
 const Plyr = dynamic(() => import("plyr-react"), { 
   ssr: false,
-  loading: () => <div className="w-full h-full bg-black animate-pulse flex items-center justify-center text-blue-500 font-bold">CARREGANDO PLAYER...</div>
 });
 
 interface LessonModalProps {
@@ -19,10 +18,26 @@ interface LessonModalProps {
 
 export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
+  const [isChanging, setIsChanging] = useState(false);
 
-  // Reseta o index da aula quando o modal fecha ou muda de módulo
+  // Efeito para "limpar" o player antes de trocar a aula
+  const handleAulaChange = (idx: number) => {
+    if (idx === aulaAtivaIdx) return;
+    setIsChanging(true); // Remove o player do DOM
+    setAulaAtivaIdx(idx);
+    
+    // Pequeno delay para o React processar a remoção antes da nova inserção
+    setTimeout(() => {
+      setIsChanging(false);
+    }, 10);
+  };
+
+  // Reseta ao fechar o modal
   useEffect(() => {
-    if (!isOpen) setAulaAtivaIdx(0);
+    if (!isOpen) {
+      setAulaAtivaIdx(0);
+      setIsChanging(false);
+    }
   }, [isOpen]);
 
   if (!isOpen || !modulo) return null;
@@ -69,17 +84,16 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             
             <div className="relative group w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
                 
-                {/* MARCA D'ÁGUA */}
                 <div className="absolute top-6 right-8 z-[100] pointer-events-none select-none opacity-50 group-hover:opacity-100 transition-opacity">
                     <span className="text-white font-black italic text-sm tracking-tighter uppercase drop-shadow-md">
                         Retenção <span className="text-blue-500">Start</span>
                     </span>
                 </div>
 
-                {/* Player com Dynamic Import */}
-                {aulaAtual && (
+                {/* LOGICA DE TROCA SEGURA */}
+                {!isChanging && aulaAtual ? (
                   <Plyr
-                    key={aulaAtual.id} 
+                    key={`${modulo.id}-${aulaAtivaIdx}`} 
                     source={{
                       type: 'video',
                       sources: [{ src: videoData.src, provider: videoData.provider }],
@@ -91,6 +105,10 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                       youtube: { noCookie: true, rel: 0, showinfo: 0, modestbranding: 1 }
                     }}
                   />
+                ) : (
+                  <div className="w-full h-full bg-slate-900 animate-pulse flex items-center justify-center">
+                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
                 )}
             </div>
 
@@ -120,7 +138,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 {modulo.aulas.map((aula, idx) => (
                     <button
                         key={aula.id}
-                        onClick={() => setAulaAtivaIdx(idx)}
+                        onClick={() => handleAulaChange(idx)}
                         className={`w-full flex items-center gap-4 p-4 rounded-[20px] border transition-all ${
                             aulaAtivaIdx === idx 
                             ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.3)] scale-[1.02]' 
