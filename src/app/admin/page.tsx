@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Upload, ChevronLeft, Edit3 } from 'lucide-react';
 import { Modulo, Aula } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 export default function AdminPanel() {
   const [view, setView] = useState<'lista' | 'edit'>('lista');
