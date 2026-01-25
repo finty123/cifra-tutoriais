@@ -1,6 +1,6 @@
 "use client";
-import { useState } from 'react';
-import { X, PlayCircle, CheckCircle2, Volume2, Play, Pause, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import { Modulo } from '../types';
 
 interface LessonModalProps {
@@ -11,16 +11,41 @@ interface LessonModalProps {
 
 export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isOpen || !iframeRef.current) return;
+
+    // Carrega o script oficial do Vimeo para permitir controle dos botões
+    const script = document.createElement('script');
+    script.src = "https://player.vimeo.com/api/player.js";
+    script.onload = () => {
+      // @ts-ignore
+      const player = new window.Vimeo.Player(iframeRef.current);
+      playerRef.current = player;
+
+      player.on('play', () => setIsPlaying(true));
+      player.on('pause', () => setIsPlaying(false));
+      player.setPlaybackRate(1.25); // Força 1.25x
+    };
+    document.body.appendChild(script);
+  }, [isOpen, aulaAtivaIdx]);
 
   if (!isOpen || !modulo) return null;
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // Gera a URL do Vimeo com os parâmetros de visual e funcionalidade
-  const getVimeoUrl = (url: string, muted: boolean) => {
-    const id = url.split('/').pop();
-    // autoplay=1 (toca ao abrir), muted=(estado do botão), controls=1 (garante que funcione)
-    return `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted ? 1 : 0}&color=2563eb&title=0&byline=0&portrait=0`;
+  const handlePlayPause = () => {
+    if (!playerRef.current) return;
+    isPlaying ? playerRef.current.pause() : playerRef.current.play();
+  };
+
+  const handleMute = () => {
+    if (!playerRef.current) return;
+    playerRef.current.setMuted(!isMuted);
+    setIsMuted(!isMuted);
   };
 
   return (
@@ -40,42 +65,43 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
               <h2 className="text-white font-black italic uppercase text-sm">{modulo.titulo}</h2>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-2">
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={24} />
           </button>
         </div>
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+          <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 bg-[#0f172a] custom-scrollbar">
             
-            {/* PLAYER UNIT */}
-            <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30">
+            {/* PLAYER UNIT - SEM BOTÕES DO VIMEO */}
+            <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 group">
                 <iframe
-                  key={`${aulaAtual?.id}-${isMuted}`}
-                  src={getVimeoUrl(aulaAtual?.videoUrl || '', isMuted)}
-                  className="absolute inset-0 w-full h-full border-0"
+                  ref={iframeRef}
+                  key={aulaAtual?.id}
+                  src={`https://player.vimeo.com/video/${aulaAtual?.videoUrl.split('/').pop()}?autoplay=1&controls=0&background=1`}
+                  className="absolute inset-0 w-full h-full border-0 pointer-events-none"
                   allow="autoplay; fullscreen"
                 />
+                
+                {/* OVERLAY DE CONTROLES RETENÇÃO START */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={handlePlayPause} className="bg-blue-600 p-6 rounded-full text-white shadow-2xl scale-110">
+                        {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
+                    </button>
+                </div>
             </div>
 
-            {/* CONTROLES VISUAIS (INTERFACE) */}
-            <div className="bg-white/[0.02] p-6 rounded-[32px] border border-white/5 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setIsMuted(!isMuted)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold uppercase text-[10px] transition-all ${isMuted ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-blue-600/20 text-blue-400 border border-blue-500/30'}`}
-                >
-                  <Volume2 size={16} />
-                  {isMuted ? "Áudio Mutado" : "Áudio Ativo"}
+            {/* CONTROLES INFERIORES */}
+            <div className="bg-white/[0.02] p-6 rounded-[32px] border border-white/5 flex items-center justify-between">
+              <div className="flex gap-4">
+                <button onClick={handlePlayPause} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black italic uppercase text-[10px] flex items-center gap-2">
+                  {isPlaying ? <Pause size={14} /> : <Play size={14} />} {isPlaying ? "Pausar" : "Dar Play"}
                 </button>
-                <div className="hidden md:block px-4 py-2 bg-white/5 rounded-lg border border-white/10 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  Velocidade: 1.25x (Auto)
-                </div>
+                <button onClick={handleMute} className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-xl font-black italic uppercase text-[10px] flex items-center gap-2">
+                  {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />} {isMuted ? "Mutado" : "Áudio"}
+                </button>
               </div>
-
-              <div className="flex items-center gap-4">
-                <span className="text-blue-500 font-black italic text-xs uppercase tracking-tighter">RETENÇÃO START PLAYER</span>
-              </div>
+              <span className="text-blue-500 font-black italic text-xs uppercase tracking-tighter">RETENÇÃO START PLAYER</span>
             </div>
 
             {/* DESCRIÇÃO */}
@@ -85,9 +111,9 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             </div>
           </div>
 
-          {/* CRONOGRAMA */}
+          {/* LISTA LATERAL */}
           <div className="flex-1 bg-[#0a0f1d]/60 border-l border-white/5 flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-white/5 text-[10px] font-black text-blue-500 uppercase tracking-widest">Próximas Aulas</div>
+            <div className="p-6 border-b border-white/5 text-[10px] font-black text-blue-500 uppercase tracking-widest">Aulas</div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
               {modulo.aulas.map((aula, idx) => (
                 <button
