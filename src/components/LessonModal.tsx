@@ -19,16 +19,20 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
   // FUNÇÃO ATUALIZADA PARA DROPBOX
-  const getDirectVideoUrl = (url: string) => {
-    if (!url) return '';
-    
-    // Se for link do Dropbox, remove o final (?dl=0 ou ?dl=1) e força o ?raw=1
-    if (url.includes('dropbox.com')) {
-      return url.split('?')[0] + '?raw=1';
-    }
-    
-    return url;
-  };
+const getDirectVideoUrl = (url: string) => {
+  if (!url) return '';
+  
+  if (url.includes('dropbox.com')) {
+    // Transforma o link de visualização em link de servidor direto
+    return url
+      .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+      .replace('?dl=0', '')
+      .replace('?dl=1', '')
+      .split('?')[0]; // Remove parâmetros para evitar conflito
+  }
+  
+  return url;
+};
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
