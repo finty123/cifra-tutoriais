@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Play, Pause, Settings } from 'lucide-react';
 import { Modulo } from '../types';
 
 interface LessonModalProps {
@@ -13,13 +13,13 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [progress, setProgress] = useState(0); // 0 a 100
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!isOpen || !iframeRef.current) return;
 
-    // Carrega o script oficial do Vimeo para permitir controle dos botões
     const script = document.createElement('script');
     script.src = "https://player.vimeo.com/api/player.js";
     script.onload = () => {
@@ -27,11 +27,30 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
       const player = new window.Vimeo.Player(iframeRef.current);
       playerRef.current = player;
 
+      // Configurações Iniciais
+      player.setMuted(false);
+      player.setPlaybackRate(1.25);
+      
+      // Listeners de Eventos
       player.on('play', () => setIsPlaying(true));
       player.on('pause', () => setIsPlaying(false));
-      player.setPlaybackRate(1.25); // Força 1.25x
+      
+      player.on('timeupdate', (data: { percent: number }) => {
+        setProgress(data.percent * 100);
+      });
+
+      // Garantir que comece desmutado
+      player.setVolume(1);
     };
     document.body.appendChild(script);
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.off('play');
+        playerRef.current.off('pause');
+        playerRef.current.off('timeupdate');
+      }
+    };
   }, [isOpen, aulaAtivaIdx]);
 
   if (!isOpen || !modulo) return null;
@@ -44,8 +63,21 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const handleMute = () => {
     if (!playerRef.current) return;
-    playerRef.current.setMuted(!isMuted);
-    setIsMuted(!isMuted);
+    playerRef.current.getMuted().then((muted: boolean) => {
+      playerRef.current.setMuted(!muted);
+      setIsMuted(!muted);
+    });
+  };
+
+  // Função para avançar/retroceder clicando na barra
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!playerRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = x / rect.width;
+    playerRef.current.getDuration().then((duration: number) => {
+      playerRef.current.setCurrentTime(duration * percentage);
+    });
   };
 
   return (
@@ -73,38 +105,61 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 bg-[#0f172a] custom-scrollbar">
             
-            {/* PLAYER UNIT - SEM BOTÕES DO VIMEO */}
+            {/* CONTAINER DO PLAYER */}
             <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 group">
                 <iframe
                   ref={iframeRef}
                   key={aulaAtual?.id}
-                  src={`https://player.vimeo.com/video/${aulaAtual?.videoUrl.split('/').pop()}?autoplay=1&controls=0&background=1`}
+                  // Mudamos background=1 para background=0 e controls=0 para permitir áudio e API
+                  src={`https://player.vimeo.com/video/${aulaAtual?.videoUrl.split('/').pop()}?autoplay=1&controls=0&background=0&muted=0`}
                   className="absolute inset-0 w-full h-full border-0 pointer-events-none"
                   allow="autoplay; fullscreen"
                 />
                 
-                {/* OVERLAY DE CONTROLES RETENÇÃO START */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={handlePlayPause} className="bg-blue-600 p-6 rounded-full text-white shadow-2xl scale-110">
-                        {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
-                    </button>
+                {/* OVERLAY DE CONTROLES */}
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6">
+                    
+                    {/* BARRA DE PROGRESSO */}
+                    <div 
+                      className="w-full h-1.5 bg-white/20 rounded-full mb-6 cursor-pointer relative group/progress overflow-hidden"
+                      onClick={handleProgressClick}
+                    >
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-150"
+                          style={{ width: `${progress}%` }}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <button onClick={handlePlayPause} className="bg-blue-600 p-4 rounded-full text-white shadow-2xl hover:scale-110 transition-transform">
+                            {isPlaying ? <Pause size={24} fill="white" /> : <Play size={24} fill="white" />}
+                        </button>
+
+                        <div className="flex items-center gap-4">
+                            <button onClick={handleMute} className="text-white hover:text-blue-400 transition-colors">
+                                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                            </button>
+                            <div className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded text-[10px] text-blue-400 font-bold uppercase">
+                                1.25x
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* CONTROLES INFERIORES */}
-            <div className="bg-white/[0.02] p-6 rounded-[32px] border border-white/5 flex items-center justify-between">
+            {/* BARRA DE INFO E RESOLUÇÃO */}
+            <div className="bg-white/[0.02] p-6 rounded-[32px] border border-white/5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex gap-4">
                 <button onClick={handlePlayPause} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black italic uppercase text-[10px] flex items-center gap-2">
-                  {isPlaying ? <Pause size={14} /> : <Play size={14} />} {isPlaying ? "Pausar" : "Dar Play"}
+                  {isPlaying ? <Pause size={14} /> : <Play size={14} />} {isPlaying ? "Pausar" : "Retomar"}
                 </button>
-                <button onClick={handleMute} className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-xl font-black italic uppercase text-[10px] flex items-center gap-2">
-                  {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />} {isMuted ? "Mutado" : "Áudio"}
-                </button>
+                <div className="px-6 py-3 bg-white/5 rounded-xl border border-white/10 text-[10px] text-slate-400 font-bold uppercase flex items-center gap-2">
+                  <Settings size={14} /> Auto Resolução
+                </div>
               </div>
-              <span className="text-blue-500 font-black italic text-xs uppercase tracking-tighter">RETENÇÃO START PLAYER</span>
+              <span className="text-blue-500 font-black italic text-xs uppercase tracking-tighter">RETENÇÃO START PLAYER V2</span>
             </div>
 
-            {/* DESCRIÇÃO */}
             <div className="p-8 bg-white/[0.01] rounded-[32px] border border-white/5">
               <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter mb-4">{aulaAtual?.titulo}</h3>
               <p className="text-slate-400 text-lg leading-relaxed italic">{aulaAtual?.descricao}</p>
@@ -119,7 +174,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 <button
                   key={aula.id}
                   onClick={() => setAulaAtivaIdx(idx)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-[24px] border transition-all ${aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-400' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-[24px] border transition-all ${aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-400 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-slate-500'}`}>
                     {String(idx + 1).padStart(2, '0')}
