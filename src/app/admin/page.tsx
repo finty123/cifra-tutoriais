@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Upload, ChevronLeft, Edit3 } from 'lucide-react';
-import { Modulo, Aula } from '../types'; // Ajustado para subir um nível
+import { Modulo, Aula } from '@/types'; // Ajustado para subir um nível
 import { supabase } from '../../lib/supabase';
 
 export default function AdminPanel() {
