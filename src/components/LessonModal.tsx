@@ -18,21 +18,27 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // FUNÇÃO ATUALIZADA PARA DROPBOX
-const getDirectVideoUrl = (url: string) => {
-  if (!url) return '';
-  
-  if (url.includes('dropbox.com')) {
-    // Transforma o link de visualização em link de servidor direto
-    return url
-      .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-      .replace('?dl=0', '')
-      .replace('?dl=1', '')
-      .split('?')[0]; // Remove parâmetros para evitar conflito
-  }
-  
-  return url;
-};
+  // Identifica se o vídeo é YouTube ou Vimeo e retorna o ID e o Provider correto
+  const getVideoSource = (url: string) => {
+    if (!url) return { src: '', provider: 'html5' as const };
+
+    // Lógica para YouTube
+    const ytMatch = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+    if (ytMatch && ytMatch[2].length === 11) {
+      return { src: ytMatch[2], provider: 'youtube' as const };
+    }
+
+    // Lógica para Vimeo
+    const vimeoMatch = url.match(/(?:vimeo\.com\/|video\/)(\d+)/);
+    if (vimeoMatch) {
+      return { src: vimeoMatch[1], provider: 'vimeo' as const };
+    }
+
+    // Fallback para links diretos (caso você use algum servidor MP4 no futuro)
+    return { src: url, provider: 'html5' as const };
+  };
+
+  const videoData = getVideoSource(aulaAtual?.videoUrl || '');
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
@@ -40,20 +46,20 @@ const getDirectVideoUrl = (url: string) => {
       
       <div className="relative bg-[#0f172a] border border-blue-500/20 w-full max-w-[1400px] h-full md:h-[90vh] md:rounded-[40px] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(37,99,235,0.1)]">
         
-        {/* Header */}
+        {/* Header Tecnológico */}
         <div className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-[#0f172a]">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 text-left">
             <div className="p-2.5 bg-blue-600/20 rounded-xl border border-blue-500/30">
                 <PlayCircle className="text-blue-400" size={22} />
             </div>
             <div>
-                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5 text-left">Retenção Start</p>
-                <h2 className="text-white font-black italic uppercase text-sm md:text-base tracking-tight text-left">
+                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5">Retenção Start</p>
+                <h2 className="text-white font-black italic uppercase text-sm md:text-base tracking-tight">
                     {modulo.titulo} <span className="text-blue-500/50 mx-2">//</span> <span className="text-slate-400">Aula {aulaAtivaIdx + 1}</span>
                 </h2>
             </div>
           </div>
-          <button onClick={onClose} className="bg-white/5 p-3 rounded-full hover:bg-red-500/20 text-white transition-all">
+          <button onClick={onClose} className="bg-white/5 p-3 rounded-full hover:bg-red-500/20 text-white transition-all border border-white/10">
             <X size={20} />
           </button>
         </div>
@@ -65,9 +71,9 @@ const getDirectVideoUrl = (url: string) => {
             
             <div className="relative group w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
                 
-                {/* MARCA D'ÁGUA */}
-                <div className="absolute top-6 right-8 z-10 pointer-events-none select-none opacity-40 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white font-black italic text-sm tracking-tighter uppercase">
+                {/* MARCA D'ÁGUA RETENÇÃO START */}
+                <div className="absolute top-6 right-8 z-[100] pointer-events-none select-none opacity-50 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white font-black italic text-sm tracking-tighter uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                         Retenção <span className="text-blue-500">Start</span>
                     </span>
                 </div>
@@ -76,15 +82,14 @@ const getDirectVideoUrl = (url: string) => {
                   key={aulaAtual?.id}
                   source={{
                     type: 'video',
-                    sources: [{ 
-                        src: getDirectVideoUrl(aulaAtual?.videoUrl || ''), 
-                        type: 'video/mp4' 
-                    }],
+                    sources: [{ src: videoData.src, provider: videoData.provider }],
                   }}
                   options={{
                     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
                     settings: ['speed'],
-                    speed: { selected: 1.25, options: [0.5, 1, 1.25, 1.5, 2] }
+                    speed: { selected: 1.25, options: [0.5, 1, 1.25, 1.5, 2] },
+                    youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+                    vimeo: { byline: false, portrait: false, title: false, transparent: false }
                   }}
                 />
             </div>
@@ -92,16 +97,16 @@ const getDirectVideoUrl = (url: string) => {
             {/* TEXTOS - ABAIXO DO VÍDEO */}
             <div className="space-y-4 text-left">
                 <div className="space-y-1">
-                    <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 text-left">
+                    <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
                         <span className="w-6 h-[1px] bg-blue-400" /> Conteúdo Exclusivo
                     </p>
-                    <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter text-left">
+                    <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter">
                         {aulaAtual?.titulo}
                     </h3>
                 </div>
 
-                <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5">
-                    <p className="text-slate-400 text-sm md:text-base leading-relaxed text-left">
+                <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5 backdrop-blur-sm">
+                    <p className="text-slate-400 text-sm md:text-base leading-relaxed">
                         {aulaAtual?.descricao}
                     </p>
                 </div>
@@ -120,7 +125,7 @@ const getDirectVideoUrl = (url: string) => {
                         onClick={() => setAulaAtivaIdx(idx)}
                         className={`w-full flex items-center gap-4 p-4 rounded-[20px] border transition-all ${
                             aulaAtivaIdx === idx 
-                            ? 'bg-blue-600 border-blue-400 shadow-lg scale-[1.02]' 
+                            ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.3)] scale-[1.02]' 
                             : 'bg-white/5 border-transparent hover:bg-white/10'
                         }`}
                     >
@@ -148,14 +153,14 @@ const getDirectVideoUrl = (url: string) => {
           background: #000;
         }
 
-        /* Fix: Ancoragem dos controles na parte inferior */
+        /* Fix: Força os controles para a parte inferior */
         .plyr--video .plyr__controls {
           position: absolute;
           bottom: 0;
           left: 0;
           right: 0;
-          padding: 20px 15px 10px !important;
-          background: linear-gradient(transparent, rgba(0,0,0,0.8)) !important;
+          padding: 25px 15px 10px !important;
+          background: linear-gradient(transparent, rgba(0,0,0,0.85)) !important;
           z-index: 5;
         }
 
