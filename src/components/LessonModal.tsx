@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { X, PlayCircle, CheckCircle2, Volume2, VolumeX, Play, Pause, Settings } from 'lucide-react';
+import { X, PlayCircle, Volume2, VolumeX, Play, Pause, Settings, Maximize } from 'lucide-react';
 import { Modulo } from '../types';
 
 interface LessonModalProps {
@@ -13,7 +13,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0); // 0 a 100
+  const [progress, setProgress] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
 
@@ -27,30 +27,18 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
       const player = new window.Vimeo.Player(iframeRef.current);
       playerRef.current = player;
 
-      // Configurações Iniciais
       player.setMuted(false);
       player.setPlaybackRate(1.25);
       
-      // Listeners de Eventos
       player.on('play', () => setIsPlaying(true));
       player.on('pause', () => setIsPlaying(false));
-      
       player.on('timeupdate', (data: { percent: number }) => {
         setProgress(data.percent * 100);
       });
-
-      // Garantir que comece desmutado
-      player.setVolume(1);
     };
     document.body.appendChild(script);
 
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.off('play');
-        playerRef.current.off('pause');
-        playerRef.current.off('timeupdate');
-      }
-    };
+    return () => { if (playerRef.current) playerRef.current.unload(); };
   }, [isOpen, aulaAtivaIdx]);
 
   if (!isOpen || !modulo) return null;
@@ -69,7 +57,6 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
     });
   };
 
-  // Função para avançar/retroceder clicando na barra
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!playerRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -97,72 +84,71 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
               <h2 className="text-white font-black italic uppercase text-sm">{modulo.titulo}</h2>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-            <X size={24} />
-          </button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
         </div>
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 bg-[#0f172a] custom-scrollbar">
             
-            {/* CONTAINER DO PLAYER */}
-            <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 group">
+            {/* PLAYER NATIVO RETENÇÃO START */}
+            <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 group shadow-2xl">
                 <iframe
                   ref={iframeRef}
                   key={aulaAtual?.id}
-                  // Mudamos background=1 para background=0 e controls=0 para permitir áudio e API
                   src={`https://player.vimeo.com/video/${aulaAtual?.videoUrl.split('/').pop()}?autoplay=1&controls=0&background=0&muted=0`}
-                  className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+                  className="absolute inset-0 w-full h-full border-0 pointer-events-none scale-[1.01]"
                   allow="autoplay; fullscreen"
                 />
                 
-                {/* OVERLAY DE CONTROLES */}
-                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6">
+                {/* CONTROLES INTEGRADOS AO VÍDEO */}
+                <div className="absolute inset-0 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-black/90 via-transparent to-transparent">
                     
-                    {/* BARRA DE PROGRESSO */}
+                    {/* BARRA DE PROGRESSO NATIVA */}
                     <div 
-                      className="w-full h-1.5 bg-white/20 rounded-full mb-6 cursor-pointer relative group/progress overflow-hidden"
+                      className="w-full h-1.5 bg-white/10 cursor-pointer relative group/progress"
                       onClick={handleProgressClick}
                     >
                         <div 
-                          className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-150"
+                          className="absolute top-0 left-0 h-full bg-blue-600 shadow-[0_0_15px_#2563eb] transition-all"
                           style={{ width: `${progress}%` }}
                         />
+                        <div className="absolute h-4 w-4 bg-white rounded-full -top-1.5 opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-lg" style={{ left: `${progress}%`, marginLeft: '-8px' }} />
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <button onClick={handlePlayPause} className="bg-blue-600 p-4 rounded-full text-white shadow-2xl hover:scale-110 transition-transform">
-                            {isPlaying ? <Pause size={24} fill="white" /> : <Play size={24} fill="white" />}
-                        </button>
-
-                        <div className="flex items-center gap-4">
-                            <button onClick={handleMute} className="text-white hover:text-blue-400 transition-colors">
-                                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                    {/* BARRA DE BOTÕES INTERNA */}
+                    <div className="flex items-center justify-between p-6">
+                        <div className="flex items-center gap-6">
+                            <button onClick={handlePlayPause} className="text-white hover:text-blue-500 transition-all">
+                                {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
                             </button>
-                            <div className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded text-[10px] text-blue-400 font-bold uppercase">
-                                1.25x
+                            <button onClick={handleMute} className="text-white hover:text-blue-500">
+                                {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded">1.25X</span>
+                                <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest hidden sm:block">HD Auto</span>
                             </div>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <Settings size={20} className="text-white hover:text-blue-500 cursor-pointer" />
+                            <span className="text-blue-500 font-black italic text-sm tracking-tighter uppercase">
+                                RETENÇÃO <span className="text-white">START</span>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* BARRA DE INFO E RESOLUÇÃO */}
-            <div className="bg-white/[0.02] p-6 rounded-[32px] border border-white/5 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex gap-4">
-                <button onClick={handlePlayPause} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black italic uppercase text-[10px] flex items-center gap-2">
-                  {isPlaying ? <Pause size={14} /> : <Play size={14} />} {isPlaying ? "Pausar" : "Retomar"}
-                </button>
-                <div className="px-6 py-3 bg-white/5 rounded-xl border border-white/10 text-[10px] text-slate-400 font-bold uppercase flex items-center gap-2">
-                  <Settings size={14} /> Auto Resolução
-                </div>
+            {/* INFO ABAIXO DO VÍDEO */}
+            <div className="p-8 bg-white/[0.02] rounded-[32px] border border-white/5 flex flex-col md:flex-row justify-between items-start gap-6">
+              <div className="flex-1">
+                <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter mb-4">{aulaAtual?.titulo}</h3>
+                <p className="text-slate-400 text-lg leading-relaxed italic">{aulaAtual?.descricao}</p>
               </div>
-              <span className="text-blue-500 font-black italic text-xs uppercase tracking-tighter">RETENÇÃO START PLAYER V2</span>
-            </div>
-
-            <div className="p-8 bg-white/[0.01] rounded-[32px] border border-white/5">
-              <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter mb-4">{aulaAtual?.titulo}</h3>
-              <p className="text-slate-400 text-lg leading-relaxed italic">{aulaAtual?.descricao}</p>
+              <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg shrink-0">
+                <CheckCircle2 size={18} className="inline mr-2" /> Concluir Aula
+              </button>
             </div>
           </div>
 
@@ -174,7 +160,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 <button
                   key={aula.id}
                   onClick={() => setAulaAtivaIdx(idx)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-[24px] border transition-all ${aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-400 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-[24px] border transition-all ${aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-400' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-slate-500'}`}>
                     {String(idx + 1).padStart(2, '0')}
