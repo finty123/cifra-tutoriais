@@ -98,7 +98,7 @@ export default function Home() {
             RETENÇÃO <br /> <span className="text-blue-600 drop-shadow-[0_0_20px_rgba(37,99,235,0.3)]">START</span>
           </h1>
           <p className="text-slate-400 text-xs md:text-lg max-w-[280px] md:max-w-2xl font-medium leading-relaxed">
-            Domine as ferramentas de retenção com o treinamento mais completo do mercado.
+            Assista cada aula com atenção para entender como atuar no setor de retenção.
           </p>
         </div>
       </section>
