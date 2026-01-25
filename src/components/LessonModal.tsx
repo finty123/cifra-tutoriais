@@ -4,11 +4,11 @@ import { X, PlayCircle, CheckCircle2, Volume2, Settings } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Modulo } from '../types';
 
-// Importação dinâmica robusta para evitar erros de "Module not found" e "Client-side exception"
+// Importação dinâmica robusta
 const ReactPlayer = dynamic(() => import('react-player').then(mod => mod.default), { 
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+    <div className="w-full h-full bg-[#0f172a] flex items-center justify-center">
       <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
   )
@@ -28,7 +28,6 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
     setMounted(true);
   }, []);
 
-  // Reseta para a primeira aula ao fechar o modal
   useEffect(() => {
     if (!isOpen) setAulaAtivaIdx(0);
   }, [isOpen]);
@@ -43,7 +42,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
       
       <div className="relative bg-[#0f172a] border border-blue-500/20 w-full max-w-[1400px] h-full md:h-[90vh] md:rounded-[40px] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(37,99,235,0.15)]">
         
-        {/* HEADER RETENÇÃO START */}
+        {/* HEADER */}
         <div className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-[#0f172a]">
           <div className="flex items-center gap-4 text-left">
             <div className="p-2 bg-blue-600/20 rounded-lg border border-blue-500/30 text-blue-400">
@@ -62,22 +61,32 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         </div>
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* ÁREA DO VÍDEO CUSTOMIZADA */}
           <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 bg-[#0f172a] custom-scrollbar">
             
             <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-2xl group">
                 <ReactPlayer
-                  key={aulaAtual?.id} // ESSENCIAL: Destrói o player antigo e cria um novo (evita Client Exception)
+                  key={aulaAtual?.id}
                   url={aulaAtual?.videoUrl}
                   width="100%"
                   height="100%"
                   controls={true}
                   playing={true}
-                  playbackRate={1.25} // FORÇA A VELOCIDADE EM 1.25x
-                  // @ts-ignore
+                  playbackRate={1.25}
                   config={{
-                    vimeo: { playerOptions: { color: "2563eb", title: 0, byline: 0, portrait: 0 } },
-                    youtube: { playerVars: { modestbranding: 1, rel: 0 } }
+                    vimeo: {
+                      title: false,
+                      byline: false,
+                      portrait: false,
+                      color: '2563eb'
+                    },
+                    // Usamos o 'as any' para forçar o TypeScript a aceitar as propriedades do YouTube
+                    youtube: {
+                      playerVars: { 
+                        modestbranding: 1, 
+                        rel: 0,
+                        showinfo: 0 
+                      } as any
+                    }
                   }}
                   style={{ position: 'absolute', top: 0, left: 0 }}
                 />
@@ -94,17 +103,23 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
               <div className="text-left">
                 <div className="flex items-center gap-2 mb-2">
                     <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] font-bold text-blue-400 uppercase tracking-widest">Conteúdo Premium</span>
-                    <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest">1.25x Speed</span>
+                    <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-bold text-slate-400 uppercase tracking-widest">1.25x Ativado</span>
                 </div>
                 <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter leading-none">
                   {aulaAtual?.titulo}
                 </h3>
               </div>
               
-              <button className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs transition-all shadow-[0_10px_30px_rgba(37,99,235,0.3)]">
-                <CheckCircle2 size={18} />
-                Concluir Aula
-              </button>
+              <div className="flex items-center gap-4">
+                  <div className="hidden md:flex gap-4 mr-4 text-slate-500">
+                      <Volume2 size={20} className="hover:text-blue-400 cursor-pointer transition-colors" />
+                      <Settings size={20} className="hover:text-blue-400 cursor-pointer transition-colors" />
+                  </div>
+                  <button className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs transition-all shadow-[0_10px_30px_rgba(37,99,235,0.3)]">
+                    <CheckCircle2 size={18} />
+                    Concluir Aula
+                  </button>
+              </div>
             </div>
 
             <div className="text-left px-4">
@@ -116,8 +131,9 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
           {/* CRONOGRAMA */}
           <div className="flex-1 bg-[#0a0f1d]/60 border-l border-white/5 flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-white/5 text-left">
+            <div className="p-6 border-b border-white/5 text-left flex justify-between items-center">
               <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em]">Próximas Aulas</h4>
+              <span className="text-[10px] text-slate-600 font-bold uppercase">{modulo.aulas.length} Aulas</span>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
               {modulo.aulas.map((aula, idx) => (
