@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { X, PlayCircle, CheckCircle2 } from 'lucide-react';
+import { X, PlayCircle } from 'lucide-react';
 import Plyr from "plyr-react";
 import "plyr/dist/plyr.css";
 import { Modulo } from '../types';
@@ -33,15 +33,15 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
       
       <div className="relative bg-[#0f172a] border border-blue-500/20 w-full max-w-[1400px] h-full md:h-[90vh] md:rounded-[40px] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(37,99,235,0.1)]">
         
-        {/* Header Fixo */}
+        {/* Header */}
         <div className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-[#0f172a]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-blue-600/20 rounded-xl border border-blue-500/30">
                 <PlayCircle className="text-blue-400" size={22} />
             </div>
             <div>
-                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5">Módulo em exibição</p>
-                <h2 className="text-white font-black italic uppercase text-sm md:text-base tracking-tight">
+                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5 text-left">Módulo em exibição</p>
+                <h2 className="text-white font-black italic uppercase text-sm md:text-base tracking-tight text-left">
                     {modulo.titulo} <span className="text-blue-500/50 mx-2">//</span> <span className="text-slate-400">Aula {aulaAtivaIdx + 1}</span>
                 </h2>
             </div>
@@ -53,10 +53,10 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
-          <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar bg-[#0f172a]">
+          {/* ÁREA DO VÍDEO EXPANDIDA */}
+          <div className="flex-[3] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar bg-[#0f172a]">
             
-            {/* PLAYER - POSICIONADO PRIMEIRO */}
-            <div className="video-container relative group w-full rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
+            <div className="relative group w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
                 
                 {/* MARCA D'ÁGUA */}
                 <div className="absolute top-6 right-8 z-10 pointer-events-none select-none opacity-40 group-hover:opacity-100 transition-opacity">
@@ -79,52 +79,47 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 />
             </div>
 
-            {/* TEXTOS E BOTÃO - ABAIXO DO VÍDEO */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4">
-                <div className="space-y-2">
+            {/* TEXTOS - ABAIXO DO VÍDEO */}
+            <div className="space-y-4 text-left">
+                <div className="space-y-1">
+                    <p className="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-6 h-[1px] bg-blue-400" /> Conteúdo Exclusivo
+                    </p>
                     <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter">
                         {aulaAtual?.titulo}
                     </h3>
-                    <p className="text-blue-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
-                        <span className="w-8 h-[1px] bg-blue-400" /> Conteúdo Exclusivo
+                </div>
+
+                <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5">
+                    <p className="text-slate-400 text-sm md:text-base leading-relaxed">
+                        {aulaAtual?.descricao}
                     </p>
                 </div>
-                
-                <button className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white font-black italic uppercase px-8 py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                    <CheckCircle2 size={20} />
-                    Marcar como concluída
-                </button>
-            </div>
-
-            <div className="bg-white/[0.02] p-8 rounded-[32px] border border-white/5 backdrop-blur-sm">
-                <p className="text-slate-400 text-base md:text-lg leading-relaxed">
-                    {aulaAtual?.descricao}
-                </p>
             </div>
           </div>
 
           {/* CRONOGRAMA LATERAL */}
           <div className="flex-1 bg-[#0a0f1d]/50 border-l border-white/5 flex flex-col overflow-hidden">
-            <div className="p-8 border-b border-white/5">
-                <h4 className="text-xs font-black text-blue-500 uppercase tracking-[0.3em]">Cronograma</h4>
+            <div className="p-6 border-b border-white/5">
+                <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Cronograma</h4>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {modulo.aulas.map((aula, idx) => (
                     <button
                         key={aula.id}
                         onClick={() => setAulaAtivaIdx(idx)}
-                        className={`w-full flex items-center gap-4 p-5 rounded-[24px] border transition-all ${
+                        className={`w-full flex items-center gap-4 p-4 rounded-[20px] border transition-all ${
                             aulaAtivaIdx === idx 
-                            ? 'bg-blue-600 border-blue-400 shadow-lg' 
+                            ? 'bg-blue-600 border-blue-400 shadow-lg scale-[1.02]' 
                             : 'bg-white/5 border-transparent hover:bg-white/10'
                         }`}
                     >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
                             aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-white/10 text-slate-500'
                         }`}>
                             {String(idx + 1).padStart(2, '0')}
                         </div>
-                        <p className={`text-sm font-bold truncate ${aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'}`}>
+                        <p className={`text-xs font-bold uppercase truncate text-left ${aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'}`}>
                             {aula.titulo}
                         </p>
                     </button>
@@ -134,29 +129,23 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         </div>
       </div>
 
-      {/* CSS PARA FIXAR OS CONTROLES NA PARTE INFERIOR */}
       <style jsx global>{`
         :root { --plyr-color-main: #2563eb; }
         
-        /* Força os controles para o rodapé do vídeo */
+        .plyr--video { 
+          height: 100%; 
+          border-radius: 32px; 
+          background: #000;
+        }
+
         .plyr--video .plyr__controls {
           position: absolute;
           bottom: 0;
           left: 0;
           right: 0;
-          padding-top: 40px !important; /* Gradiente de fundo para legibilidade */
-          background: linear-gradient(transparent, rgba(0,0,0,0.75)) !important;
+          padding: 20px 15px 10px !important;
+          background: linear-gradient(transparent, rgba(0,0,0,0.8)) !important;
           z-index: 5;
-        }
-
-        /* Ajusta o posicionamento da barra de progresso */
-        .plyr__progress {
-          margin-bottom: 4px;
-        }
-
-        .plyr--video {
-          height: 100%;
-          border-radius: 32px;
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
