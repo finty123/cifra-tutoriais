@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { X, PlayCircle, ChevronRight } from 'lucide-center';
+import { X, PlayCircle, ChevronRight } from 'lucide-react';
 import { Modulo } from '../types';
 
 interface LessonModalProps {
