@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { X, PlayCircle, ChevronRight } from 'lucide-react';
 import Plyr from "plyr-react";
-import "plyr/dist/plyr.css"; // Importante para o visual limpo
+import "plyr/dist/plyr.css";
 import { Modulo } from '../types';
 
 interface LessonModalProps {
@@ -18,7 +18,6 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // Extrai apenas o ID para o Plyr trabalhar sem interferência de URL
   const getVideoId = (url: string) => {
     if (!url) return '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -49,7 +48,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
-          {/* LADO ESQUERDO: PLAYER CUSTOMIZADO */}
+          {/* LADO ESQUERDO: PLAYER (SEM ZOOM) */}
           <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
             
             <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-blue-600/30 shadow-[0_0_40px_rgba(37,99,235,0.3)]">
@@ -59,25 +58,28 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                     sources: [{ src: getVideoId(aulaAtual?.videoUrl || ''), provider: 'youtube' }],
                   }}
                   options={{
-                    // Aqui escolhemos o que aparece. 'settings' libera a velocidade!
                     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-                    settings: ['speed'], // Foca apenas na velocidade
+                    settings: ['speed'],
                     speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+                    // youtube: rel=0 e iv_load_policy=3 removem as recomendações e anotações
                     youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 }
                   }}
                 />
             </div>
 
-            {/* CSS para forçar a cor azul no Player e esconder o "lixo" do Youtube */}
+            {/* Visual Azul Customizado */}
             <style jsx global>{`
               :root {
-                --plyr-color-main: #2563eb; /* O azul do seu projeto */
+                --plyr-color-main: #2563eb; 
               }
-              .plyr--full-ui input[type=range] {
-                color: #2563eb;
+              .plyr__video-wrapper {
+                background: black;
               }
+              /* Garante que o iframe ocupe 100% sem zoom ou cortes */
               .plyr__video-embed iframe {
-                transform: scale(1.2); /* Pequeno ajuste para garantir bordas limpas */
+                top: 0 !important;
+                height: 100% !important;
+                transform: none !important;
               }
             `}</style>
             
@@ -96,7 +98,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
           {/* LADO DIREITO: LISTA */}
           <div className="flex-1 bg-black/20 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5 bg-white/[0.01]">
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Conteúdo</h4>
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aulas</h4>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                 {modulo.aulas.map((aula, idx) => (
