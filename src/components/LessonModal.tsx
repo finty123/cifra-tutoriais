@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { X, PlayCircle, ChevronRight } from 'lucide-react';
-import { Modulo, Aula } from '../types';
+import { Modulo } from '../types';
 
 interface LessonModalProps {
   modulo: Modulo | null;
@@ -16,22 +16,21 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // Função aprimorada para Player Limpo (Visual Premium)
+  // Função forçada para Player Ultra Limpo e Profissional
   const getEmbedUrl = (url: string) => {
     if (!url) return '';
     
-    // Extrai o ID do vídeo para garantir que os parâmetros funcionem
+    // Regex robusto para capturar ID do YouTube
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     const videoId = (match && match[2].length === 11) ? match[2] : null;
 
     if (videoId) {
-      // Parâmetros:
-      // rel=0: Não mostra vídeos de outros canais ao pausar
-      // modestbranding=1: Remove a logo grande do YouTube
-      // showinfo=0: Esconde o título (descontinuado em alguns casos, mas ajuda no layout)
-      // iv_load_policy=3: Remove anotações sobre o vídeo
-      return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3&autoplay=0`;
+      // Usando youtube-nocookie para evitar rastreio e sugestões externas
+      // rel=0: apenas vídeos do próprio canal (se houver)
+      // modestbranding=1: remove logo principal
+      // iv_load_policy=3: remove anotações de tela
+      return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3&showinfo=0&autoplay=0`;
     }
     
     return url;
@@ -39,12 +38,12 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
-      {/* Overlay */}
+      {/* Overlay Escuro */}
       <div className="absolute inset-0 bg-[#020617]/98 backdrop-blur-md" onClick={onClose} />
       
       <div className="relative bg-[#0f172a] border border-white/10 w-full max-w-[1400px] h-full md:h-[85vh] md:rounded-[40px] overflow-hidden flex flex-col shadow-2xl">
         
-        {/* Header Compacto */}
+        {/* Header do Modal */}
         <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
           <div className="flex items-center gap-4">
             <div className="hidden sm:block p-2 bg-blue-600/20 rounded-lg">
@@ -61,13 +60,14 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
           </button>
         </div>
 
-        {/* Layout Grid */}
+        {/* Área Principal */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
-          {/* LADO ESQUERDO: PLAYER */}
+          {/* LADO ESQUERDO: PLAYER (Com Brilho Neon Reforçado) */}
           <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
-            {/* Container do Player com Brilho Azul Neon */}
-            <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.15)] transition-all">
+            
+            {/* Container do Vídeo com Borda Azul e Brilho Neon */}
+            <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-blue-600/30 shadow-[0_0_40px_rgba(37,99,235,0.3)] transition-all">
                 {aulaAtual?.videoUrl.endsWith('.mp4') ? (
                     <video src={aulaAtual.videoUrl} controls className="w-full h-full" />
                 ) : (
@@ -94,7 +94,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             </div>
           </div>
 
-          {/* LADO DIREITO: PLAYLIST */}
+          {/* LADO DIREITO: LISTA DE AULAS */}
           <div className="flex-1 bg-black/20 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5 bg-white/[0.01]">
                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Conteúdo do Módulo</h4>
@@ -107,7 +107,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                         onClick={() => setAulaAtivaIdx(idx)}
                         className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${
                             aulaAtivaIdx === idx 
-                            ? 'bg-blue-600 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.2)]' 
+                            ? 'bg-blue-600 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)]' 
                             : 'bg-white/5 border-transparent hover:bg-white/10'
                         }`}
                     >
