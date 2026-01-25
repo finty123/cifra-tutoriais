@@ -1,9 +1,15 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { X, PlayCircle } from 'lucide-react';
-import Plyr from "plyr-react";
+import dynamic from 'next/dynamic';
 import "plyr/dist/plyr.css";
 import { Modulo } from '../types';
+
+// Carrega o Player apenas no lado do cliente para evitar o erro de exceção
+const Plyr = dynamic(() => import("plyr-react"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-black animate-pulse flex items-center justify-center text-blue-500 font-bold">CARREGANDO PLAYER...</div>
+});
 
 interface LessonModalProps {
   modulo: Modulo | null;
@@ -13,19 +19,15 @@ interface LessonModalProps {
 
 export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   const [aulaAtivaIdx, setAulaAtivaIdx] = useState(0);
-  const [playerReady, setPlayerReady] = useState(true);
 
-  // Efeito para resetar o player quando trocar de aula
+  // Reseta o index da aula quando o modal fecha ou muda de módulo
   useEffect(() => {
-    setPlayerReady(false);
-    const timer = setTimeout(() => setPlayerReady(true), 50); // Pisca o player para limpar cache
-    return () => clearTimeout(timer);
-  }, [aulaAtivaIdx, modulo?.id]);
+    if (!isOpen) setAulaAtivaIdx(0);
+  }, [isOpen]);
 
   if (!isOpen || !modulo) return null;
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
-  if (!aulaAtual) return null;
 
   const getVideoSource = (url: string) => {
     if (!url) return { src: '', provider: 'html5' as const };
@@ -36,7 +38,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
     return { src: url, provider: 'html5' as const };
   };
 
-  const videoData = getVideoSource(aulaAtual.videoUrl || '');
+  const videoData = getVideoSource(aulaAtual?.videoUrl || '');
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
@@ -47,8 +49,8 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         {/* Header */}
         <div className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-[#0f172a]">
           <div className="flex items-center gap-4 text-left">
-            <div className="p-2.5 bg-blue-600/20 rounded-xl border border-blue-500/30">
-                <PlayCircle className="text-blue-400" size={22} />
+            <div className="p-2.5 bg-blue-600/20 rounded-xl border border-blue-500/30 text-blue-400">
+                <PlayCircle size={22} />
             </div>
             <div>
                 <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-0.5">Retenção Start</p>
@@ -57,7 +59,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 </h2>
             </div>
           </div>
-          <button onClick={onClose} className="bg-white/5 p-3 rounded-full hover:bg-red-500/20 text-white transition-all">
+          <button onClick={onClose} className="bg-white/5 p-3 rounded-full hover:bg-red-500/20 text-white transition-all border border-white/10">
             <X size={20} />
           </button>
         </div>
@@ -67,16 +69,17 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
             
             <div className="relative group w-full aspect-video rounded-[32px] overflow-hidden bg-black border border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
                 
-                <div className="absolute top-6 right-8 z-[100] pointer-events-none select-none opacity-50">
-                    <span className="text-white font-black italic text-sm tracking-tighter uppercase">
+                {/* MARCA D'ÁGUA */}
+                <div className="absolute top-6 right-8 z-[100] pointer-events-none select-none opacity-50 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white font-black italic text-sm tracking-tighter uppercase drop-shadow-md">
                         Retenção <span className="text-blue-500">Start</span>
                     </span>
                 </div>
 
-                {/* O Player só renderiza se playerReady for true */}
-                {playerReady ? (
+                {/* Player com Dynamic Import */}
+                {aulaAtual && (
                   <Plyr
-                    key={`${modulo.id}-${aulaAtivaIdx}`} 
+                    key={aulaAtual.id} 
                     source={{
                       type: 'video',
                       sources: [{ src: videoData.src, provider: videoData.provider }],
@@ -88,10 +91,6 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                       youtube: { noCookie: true, rel: 0, showinfo: 0, modestbranding: 1 }
                     }}
                   />
-                ) : (
-                  <div className="w-full h-full bg-black flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  </div>
                 )}
             </div>
 
@@ -101,17 +100,18 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                         <span className="w-6 h-[1px] bg-blue-400" /> Conteúdo Exclusivo
                     </p>
                     <h3 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter">
-                        {aulaAtual.titulo}
+                        {aulaAtual?.titulo}
                     </h3>
                 </div>
-                <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5">
+                <div className="bg-white/[0.02] p-6 rounded-[24px] border border-white/5 backdrop-blur-sm">
                     <p className="text-slate-400 text-sm md:text-base leading-relaxed">
-                        {aulaAtual.descricao}
+                        {aulaAtual?.descricao}
                     </p>
                 </div>
             </div>
           </div>
 
+          {/* CRONOGRAMA */}
           <div className="flex-1 bg-[#0a0f1d]/50 border-l border-white/5 flex flex-col overflow-hidden text-left">
             <div className="p-6 border-b border-white/5">
                 <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Cronograma</h4>
@@ -123,7 +123,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                         onClick={() => setAulaAtivaIdx(idx)}
                         className={`w-full flex items-center gap-4 p-4 rounded-[20px] border transition-all ${
                             aulaAtivaIdx === idx 
-                            ? 'bg-blue-600 border-blue-400 shadow-lg scale-[1.02]' 
+                            ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.3)] scale-[1.02]' 
                             : 'bg-white/5 border-transparent hover:bg-white/10'
                         }`}
                     >
@@ -146,8 +146,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         :root { --plyr-color-main: #2563eb; }
         .plyr--video { height: 100%; border-radius: 32px; background: #000; }
         .plyr--video .plyr__controls {
-          position: absolute;
-          bottom: 0; left: 0; right: 0;
+          position: absolute; bottom: 0; left: 0; right: 0;
           padding: 25px 15px 10px !important;
           background: linear-gradient(transparent, rgba(0,0,0,0.85)) !important;
           z-index: 5;
