@@ -1,8 +1,7 @@
 export interface Aula {
   id: string;
   titulo: string;
-  duracao: string;
-  thumbUrl: string;
+  descricao: string; // Este campo será usado para a legenda
   videoUrl: string;
 }
 
