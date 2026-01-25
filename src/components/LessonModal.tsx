@@ -151,7 +151,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                 <p className="text-slate-400 text-lg leading-relaxed italic">{aulaAtual?.descricao}</p>
               </div>
               <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg shrink-0 flex items-center">
-                <CheckCircle2 size={18} className="mr-2" /> Concluir Aula
+                <CheckCircle2 size={18} className="mr-2" />  Pause antes de mudar de vídeo
               </button>
             </div>
           </div>
