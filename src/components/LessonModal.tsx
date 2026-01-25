@@ -18,14 +18,16 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  const getDirectVideoUrl = (url: string) => {
-    if (!url) return '';
-    if (url.includes('drive.google.com')) {
-      const videoId = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
-      return `https://drive.google.com/uc?export=download&id=${videoId}`;
-    }
-    return url;
-  };
+const getDirectVideoUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('drive.google.com')) {
+    const videoId = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
+    
+    // FORMATO DE PREVIEW (Geralmente carrega mais rápido e sem bloqueio de download)
+    return `https://www.google.com/get_video_info?docid=${videoId}&res=direct`;
+  }
+  return url;
+};
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
