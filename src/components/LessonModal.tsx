@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { X, PlayCircle, Volume2, VolumeX, Play, Pause, Settings, Maximize } from 'lucide-react';
+import { X, PlayCircle, Volume2, VolumeX, Play, Pause, Settings, Maximize, CheckCircle2 } from 'lucide-react';
 import { Modulo } from '../types';
 
 interface LessonModalProps {
@@ -27,7 +27,9 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
       const player = new window.Vimeo.Player(iframeRef.current);
       playerRef.current = player;
 
+      // Configurações para iniciar corretamente
       player.setMuted(false);
+      player.setVolume(1);
       player.setPlaybackRate(1.25);
       
       player.on('play', () => setIsPlaying(true));
@@ -84,7 +86,9 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
               <h2 className="text-white font-black italic uppercase text-sm">{modulo.titulo}</h2>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X size={24} />
+          </button>
         </div>
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -142,12 +146,12 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
             {/* INFO ABAIXO DO VÍDEO */}
             <div className="p-8 bg-white/[0.02] rounded-[32px] border border-white/5 flex flex-col md:flex-row justify-between items-start gap-6">
-              <div className="flex-1">
+              <div className="flex-1 text-left">
                 <h3 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter mb-4">{aulaAtual?.titulo}</h3>
                 <p className="text-slate-400 text-lg leading-relaxed italic">{aulaAtual?.descricao}</p>
               </div>
-              <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg shrink-0">
-                <CheckCircle2 size={18} className="inline mr-2" /> Concluir Aula
+              <button className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black italic uppercase text-xs shadow-lg shrink-0 flex items-center">
+                <CheckCircle2 size={18} className="mr-2" /> Concluir Aula
               </button>
             </div>
           </div>
@@ -165,7 +169,7 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-slate-500'}`}>
                     {String(idx + 1).padStart(2, '0')}
                   </div>
-                  <p className={`text-xs font-black uppercase truncate flex-1 ${aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'}`}>{aula.titulo}</p>
+                  <p className={`text-xs font-black uppercase truncate flex-1 text-left ${aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'}`}>{aula.titulo}</p>
                 </button>
               ))}
             </div>
