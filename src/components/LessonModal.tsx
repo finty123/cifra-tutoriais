@@ -1,8 +1,6 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, PlayCircle, ChevronRight } from 'lucide-react';
-import Plyr from "plyr-react";
-import "plyr/dist/plyr.css";
 import { Modulo } from '../types';
 
 interface LessonModalProps {
@@ -18,15 +16,26 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
 
   const aulaAtual = modulo.aulas[aulaAtivaIdx];
 
-  // Extrai o ID do vídeo de forma limpa
-  const getVideoId = (url: string) => {
+  // FUNÇÃO DE LIMPEZA COM CONTROLES DE VELOCIDADE HABILITADOS
+  const getEmbedUrl = (url: string) => {
+    if (!url) return '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : url;
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+
+    if (videoId) {
+      // controls=1: Garante que a engrenagem de configurações/velocidade apareça
+      // rel=0: Não mostra vídeos relacionados de outros canais
+      // modestbranding=1: Remove a logo grande do YouTube na barra
+      // iv_load_policy=3: Remove anotações sobre o vídeo
+      return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&controls=1&showinfo=0&iv_load_policy=3`;
+    }
+    return url;
   };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12">
+      {/* Overlay */}
       <div className="absolute inset-0 bg-[#020617]/98 backdrop-blur-md" onClick={onClose} />
       
       <div className="relative bg-[#0f172a] border border-white/10 w-full max-w-[1400px] h-full md:h-[85vh] md:rounded-[40px] overflow-hidden flex flex-col shadow-2xl">
@@ -47,54 +56,60 @@ export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
         </div>
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-6">
+          {/* LADO ESQUERDO: PLAYER */}
+          <div className="flex-[2.5] overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
             
-            {/* O PLAYER CUSTOMIZADO ESTÁ AQUI */}
-            <div className="plyr-portal aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden border border-blue-600/30 shadow-[0_0_40px_rgba(37,99,235,0.2)]">
-                <Plyr
-                  source={{
-                    type: 'video',
-                    sources: [{ src: getVideoId(aulaAtual?.videoUrl || ''), provider: 'youtube' }],
-                  }}
-                  options={{
-                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
-                    settings: ['quality', 'speed'],
-                    youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 }
-                  }}
+            {/* CONTAINER COM BRILHO AZUL (SEM ZOOM) */}
+            <div className="aspect-video w-full rounded-[24px] md:rounded-[32px] overflow-hidden bg-black border border-blue-600/30 shadow-[0_0_40px_rgba(37,99,235,0.3)]">
+                <iframe 
+                    src={getEmbedUrl(aulaAtual?.videoUrl || '')} 
+                    className="w-full h-full" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen 
                 />
             </div>
-
-            <style jsx global>{`
-              :root { --plyr-color-main: #2563eb; } /* Força o azul do seu tema no player */
-              .plyr__video-embed iframe { top: -50%; height: 200%; } /* Esconde sugestões finais */
-            `}</style>
             
             <div className="space-y-4">
-                <h3 className="text-2xl md:text-3xl font-black italic text-white uppercase">{aulaAtual?.titulo}</h3>
-                <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5 text-slate-400 text-sm leading-relaxed">
-                    {aulaAtual?.descricao}
+                <h3 className="text-2xl md:text-3xl font-black italic text-white uppercase tracking-tighter">
+                    {aulaAtual?.titulo}
+                </h3>
+                <div className="bg-white/[0.03] p-6 rounded-3xl border border-white/5">
+                    <p className="text-slate-400 text-sm md:text-base leading-relaxed">
+                        {aulaAtual?.descricao}
+                    </p>
                 </div>
             </div>
           </div>
 
-          {/* Playlist lateral permanece igual */}
+          {/* LADO DIREITO: PLAYLIST */}
           <div className="flex-1 bg-black/20 border-l border-white/5 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-white/5 bg-white/[0.01]">
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aulas</h4>
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Conteúdo do Módulo</h4>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                 {modulo.aulas.map((aula, idx) => (
                     <button
                         key={aula.id}
                         onClick={() => setAulaAtivaIdx(idx)}
                         className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                            aulaAtivaIdx === idx ? 'bg-blue-600 border-blue-500 shadow-lg' : 'bg-white/5 border-transparent'
+                            aulaAtivaIdx === idx 
+                            ? 'bg-blue-600 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)]' 
+                            : 'bg-white/5 border-transparent hover:bg-white/10'
                         }`}
                     >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-white/10 text-slate-400'}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            aulaAtivaIdx === idx ? 'bg-white text-blue-600' : 'bg-white/10 text-slate-400'
+                        }`}>
                             {idx + 1}
                         </div>
-                        <p className="text-xs font-bold uppercase truncate text-white">{aula.titulo}</p>
+                        <div className="flex-1 text-left overflow-hidden">
+                            <p className={`text-xs font-bold uppercase truncate ${
+                                aulaAtivaIdx === idx ? 'text-white' : 'text-slate-300'
+                            }`}>
+                                {aula.titulo}
+                            </p>
+                        </div>
+                        {aulaAtivaIdx === idx && <ChevronRight size={16} className="text-white" />}
                     </button>
                 ))}
             </div>
