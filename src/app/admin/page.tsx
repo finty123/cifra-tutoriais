@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Trash2, Upload, ChevronLeft, Edit3, Save } from 'lucide-react';
+import { Plus, Trash2, Upload, ChevronLeft, Edit3 } from 'lucide-react';
 import { Modulo, Aula } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminPanel() {
   const [view, setView] = useState<'lista' | 'edit'>('lista');
@@ -9,22 +10,49 @@ export default function AdminPanel() {
   const [moduloAtivo, setModuloAtivo] = useState<Modulo | null>(null);
   const [capaPreview, setCapaPreview] = useState<string | null>(null);
   const [novaAula, setNovaAula] = useState({ titulo: '', descricao: '', videoUrl: '' });
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const STORAGE_KEY = '@retencao-start:modulos';
+  // CARREGAR DADOS DO SUPABASE
+  const carregarModulos = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('modulos')
+      .select(`
+        *,
+        aulas (*)
+      `)
+      .order('created_at', { ascending: false });
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) setModulos(JSON.parse(saved));
-  }, []);
-
-  const persistirDados = (novosModulos: Modulo[]) => {
-    setModulos(novosModulos);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(novosModulos));
+    if (error) {
+      console.error("Erro ao buscar dados:", error.message);
+    } else {
+      // Ajusta o mapeamento para garantir que capaUrl e capa_url batam
+      const modulosFormatados = data.map((m: any) => ({
+        ...m,
+        capaUrl: m.capa_url,
+        aulas: m.aulas.map((a: any) => ({
+          ...a,
+          videoUrl: a.video_url
+        })).sort((a: any, b: any) => a.ordem - b.ordem)
+      }));
+      setModulos(modulosFormatados);
+    }
+    setLoading(false);
   };
 
+  useEffect(() => {
+    carregarModulos();
+  }, []);
+
   const handleNovoModulo = () => {
-    setModuloAtivo({ id: Math.random().toString(36).substr(2, 9), titulo: '', descricao: '', capaUrl: '', aulas: [] });
+    setModuloAtivo({ 
+      id: crypto.randomUUID(), 
+      titulo: '', 
+      descricao: '', 
+      capaUrl: '', 
+      aulas: [] 
+    });
     setCapaPreview(null);
     setView('edit');
   };
@@ -35,24 +63,70 @@ export default function AdminPanel() {
     setView('edit');
   };
 
-  const handleSalvarTudo = () => {
+  const handleSalvarTudo = async () => {
     if (!moduloAtivo || !moduloAtivo.titulo) {
       alert("O título do módulo é obrigatório!");
       return;
     }
-    const index = modulos.findIndex(m => m.id === moduloAtivo.id);
-    const novosModulos = index >= 0 
-      ? modulos.map(m => m.id === moduloAtivo.id ? moduloAtivo : m)
-      : [...modulos, moduloAtivo];
 
-    persistirDados(novosModulos);
-    setView('lista');
+    setLoading(true);
+    try {
+      // 1. Salvar o Módulo (Upsert)
+      const { data: modData, error: modError } = await supabase
+        .from('modulos')
+        .upsert({
+          id: moduloAtivo.id.length < 20 ? undefined : moduloAtivo.id, // Garante que UUIDs novos funcionem
+          titulo: moduloAtivo.titulo,
+          capa_url: moduloAtivo.capaUrl,
+          descricao: moduloAtivo.descricao
+        })
+        .select()
+        .single();
+
+      if (modError) throw modError;
+
+      // 2. Limpar aulas antigas para re-inserir a playlist atualizada
+      await supabase.from('aulas').delete().eq('modulo_id', modData.id);
+
+      // 3. Inserir as Aulas
+      if (moduloAtivo.aulas.length > 0) {
+        const aulasParaInserir = moduloAtivo.aulas.map((aula, index) => ({
+          modulo_id: modData.id,
+          titulo: aula.titulo,
+          video_url: aula.videoUrl,
+          descricao: aula.descricao,
+          ordem: index
+        }));
+
+        const { error: aulasError } = await supabase.from('aulas').insert(aulasParaInserir);
+        if (aulasError) throw aulasError;
+      }
+
+      alert("Publicado com sucesso!");
+      await carregarModulos();
+      setView('lista');
+    } catch (err: any) {
+      alert("Erro ao salvar: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExcluirModulo = async (id: string) => {
+    if (!confirm("Deseja realmente excluir este módulo?")) return;
+    
+    const { error } = await supabase.from('modulos').delete().eq('id', id);
+    if (error) {
+      alert("Erro ao excluir");
+    } else {
+      carregarModulos();
+    }
   };
 
   const adicionarAula = () => {
     if (!novaAula.titulo || !moduloAtivo) return;
     const aula: Aula = { 
-      id: Math.random().toString(36).substr(2, 9), 
+      id: crypto.randomUUID(), 
       ...novaAula 
     };
     setModuloAtivo({ ...moduloAtivo, aulas: [...moduloAtivo.aulas, aula] });
@@ -80,7 +154,11 @@ export default function AdminPanel() {
             <h1 className="text-2xl md:text-4xl font-black italic text-white uppercase">
               MEUS <span className="text-blue-500">MÓDULOS</span>
             </h1>
-            <button onClick={handleNovoModulo} className="w-full sm:w-auto bg-blue-600 text-white font-black text-[10px] tracking-widest px-8 py-4 rounded-2xl flex items-center justify-center gap-2">
+            <button 
+              disabled={loading}
+              onClick={handleNovoModulo} 
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-[10px] tracking-widest px-8 py-4 rounded-2xl flex items-center justify-center gap-2 transition-all"
+            >
               <Plus size={16} /> NOVO MÓDULO
             </button>
           </div>
@@ -92,7 +170,7 @@ export default function AdminPanel() {
                   <img src={m.capaUrl || ''} className="w-full h-full object-cover opacity-60" alt="" />
                   <div className="absolute inset-0 flex items-center justify-center sm:opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 gap-2 md:gap-4">
                     <button onClick={() => handleEditarModulo(m)} className="bg-blue-600 p-2 md:p-3 rounded-xl"><Edit3 size={16} /></button>
-                    <button onClick={() => { if(confirm("Excluir?")) persistirDados(modulos.filter(x => x.id !== m.id)) }} className="bg-red-600 p-2 md:p-3 rounded-xl"><Trash2 size={16} /></button>
+                    <button onClick={() => handleExcluirModulo(m.id)} className="bg-red-600 p-2 md:p-3 rounded-xl"><Trash2 size={16} /></button>
                   </div>
                 </div>
                 <div className="p-3 md:p-5 text-center">
@@ -113,13 +191,16 @@ export default function AdminPanel() {
           <button onClick={() => setView('lista')} className="text-slate-500 font-black text-[10px] md:text-xs uppercase flex items-center gap-2">
             <ChevronLeft size={16} /> Voltar
           </button>
-          <button onClick={handleSalvarTudo} className="bg-blue-600 text-white font-black uppercase text-[10px] px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl">
-            Salvar
+          <button 
+            disabled={loading}
+            onClick={handleSalvarTudo} 
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black uppercase text-[10px] px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl transition-all"
+          >
+            {loading ? 'Salvando...' : 'Salvar e Publicar'}
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
-          {/* COLUNA ESQUERDA: CAPA E TÍTULO */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-slate-900/40 border border-white/5 p-6 md:p-8 rounded-[30px] md:rounded-[40px] space-y-6">
               <div className="space-y-3">
@@ -133,30 +214,24 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA: AULAS */}
           <div className="lg:col-span-8 space-y-6">
             <div className="bg-blue-600/5 border border-blue-500/20 p-6 md:p-8 rounded-[30px] md:rounded-[40px] space-y-4">
               <h4 className="text-white font-bold text-[10px] uppercase tracking-widest">Nova Aula</h4>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input value={novaAula.titulo} onChange={(e) => setNovaAula({...novaAula, titulo: e.target.value})} type="text" placeholder="Título da Aula" className="bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-sm" />
-                <input value={novaAula.videoUrl} onChange={(e) => setNovaAula({...novaAula, videoUrl: e.target.value})} type="text" placeholder="Link YouTube" className="bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-sm" />
+                <input value={novaAula.videoUrl} onChange={(e) => setNovaAula({...novaAula, videoUrl: e.target.value})} type="text" placeholder="Link do Vídeo" className="bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-sm" />
               </div>
-
-              {/* CAMPO DE LEGENDA (DESCRIÇÃO) */}
               <textarea 
                 value={novaAula.descricao} 
                 onChange={(e) => setNovaAula({...novaAula, descricao: e.target.value})} 
                 placeholder="Legenda da Aula (Opcional)"
                 className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none focus:border-blue-500 text-sm h-24 resize-none"
               />
-
               <button onClick={adicionarAula} className="w-full bg-blue-600 text-white font-black uppercase text-[10px] py-4 rounded-xl flex items-center justify-center gap-2">
                 <Plus size={16} /> Adicionar Aula
               </button>
             </div>
 
-            {/* LISTA DE AULAS ADICIONADAS */}
             <div className="space-y-3">
               {moduloAtivo?.aulas.map((aula, idx) => (
                 <div key={aula.id} className="bg-slate-900/40 border border-white/5 p-4 rounded-2xl flex items-center justify-between group">
