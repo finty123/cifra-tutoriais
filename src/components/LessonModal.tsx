@@ -1,108 +1,65 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { X, Play, Clock, ChevronRight } from 'lucide-react';
-// Importação corrigida para evitar erros de exportação no Webpack
-import Plyr from 'plyr-react'; 
-import "plyr/dist/plyr.css"; 
+import { X, PlayCircle } from 'lucide-react';
+import { Modulo, Aula } from '../types';
 
-export function LessonModal({ modulo, isOpen, onClose }: any) {
-  const [aulaAtiva, setAulaAtiva] = useState<any>(null);
+interface LessonModalProps {
+  modulo: Modulo | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-  useEffect(() => {
-    if (modulo?.aulas?.length > 0) {
-      setAulaAtiva(modulo.aulas[0]);
-    }
-  }, [modulo, isOpen]);
-
+export function LessonModal({ modulo, isOpen, onClose }: LessonModalProps) {
   if (!isOpen || !modulo) return null;
 
-  // Função para pegar o ID do vídeo (YouTube/Vimeo)
-  const getVideoId = (url: string) => {
-    if (!url) return null;
-    if (url.includes('youtube.com')) return url.split('v=')[1]?.split('&')[0];
-    if (url.includes('youtu.be')) return url.split('/').pop();
-    if (url.includes('vimeo.com')) return url.split('/').pop();
-    return url;
-  };
-
-  const videoId = getVideoId(aulaAtiva?.videoUrl);
-  const provider = aulaAtiva?.videoUrl?.includes('vimeo') ? 'vimeo' : 'youtube';
-
-  const plyrProps = {
-    source: {
-      type: 'video',
-      sources: [{ src: videoId, provider: provider }],
-    } as any,
-    options: {
-      controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-      hideControls: false,
-      resetOnEnd: true,
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-10">
-      <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-xl" onClick={onClose} />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-10">
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-md" onClick={onClose} />
       
-      <div className="relative bg-[#020617] w-full max-w-7xl max-h-[90vh] rounded-[48px] border border-white/10 overflow-hidden flex flex-col lg:flex-row shadow-2xl">
+      <div className="relative bg-slate-900 border border-white/10 w-full max-w-5xl max-h-[90vh] rounded-[32px] overflow-hidden flex flex-col shadow-2xl">
         
-        {/* PLAYER E DESCRIÇÃO */}
-        <div className="w-full lg:w-[70%] bg-black flex flex-col border-r border-white/5">
-          <div className="aspect-video bg-black plyr-blue-theme">
-            {videoId ? (
-              <div className="w-full h-full">
-                <Plyr {...plyrProps} />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full text-slate-600 font-bold uppercase text-[10px] tracking-widest">
-                Selecione uma aula na lista ao lado
-              </div>
-            )}
+        {/* Header do Modal */}
+        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+          <div>
+            <h2 className="text-white font-black italic uppercase text-xl">{modulo.titulo}</h2>
+            <p className="text-blue-500 text-xs font-bold uppercase tracking-widest">{modulo.aulas.length} Aulas disponíveis</p>
           </div>
-          
-          <div className="p-12 space-y-4 overflow-y-auto">
-             <div className="flex items-center gap-3">
-                <span className="bg-blue-600/10 text-blue-500 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Aula Ativa</span>
-                <span className="h-px w-12 bg-white/10"></span>
-             </div>
-             <h2 className="text-4xl font-black italic uppercase text-white tracking-tighter">
-                {aulaAtiva?.titulo || modulo.titulo}
-             </h2>
-             <p className="text-slate-400 font-medium leading-relaxed max-w-2xl text-lg">
-                {aulaAtiva?.descricao || modulo.descricao}
-             </p>
-          </div>
+          <button onClick={onClose} className="bg-white/5 p-2 rounded-full hover:bg-white/10 text-white transition-colors">
+            <X size={24} />
+          </button>
         </div>
 
-        {/* LISTA DE AULAS */}
-        <div className="w-full lg:w-[30%] p-8 overflow-y-auto bg-[#050505]/40">
-          <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.4em] mb-8">Conteúdo</h3>
-          <div className="space-y-4">
-            {modulo.aulas?.map((aula: any, index: number) => (
-              <button 
-                key={aula.id} 
-                onClick={() => setAulaAtiva(aula)}
-                className={`w-full group flex items-center gap-5 p-5 rounded-[32px] border transition-all text-left
-                  ${aulaAtiva?.id === aula.id ? 'bg-blue-600 border-blue-500 shadow-xl' : 'bg-white/[0.03] border-transparent hover:border-white/10'}`}
-              >
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs
-                  ${aulaAtiva?.id === aula.id ? 'bg-white text-blue-600' : 'bg-white/5 text-slate-500'}`}>
-                  {(index + 1).toString().padStart(2, '0')}
+        {/* Conteúdo */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          {modulo.aulas.map((aula, idx) => (
+            <div key={aula.id} className="space-y-4 border-b border-white/5 pb-8 last:border-0">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-lg italic">
+                  {idx + 1}
                 </div>
-                <div className="flex-1">
-                  <h4 className={`font-bold text-sm ${aulaAtiva?.id === aula.id ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
-                    {aula.titulo}
-                  </h4>
-                </div>
-                {aulaAtiva?.id === aula.id && <div className="w-2 h-2 bg-white rounded-full animate-ping" />}
-              </button>
-            ))}
-          </div>
-        </div>
+                <h3 className="text-white font-bold text-lg">{aula.titulo}</h3>
+              </div>
 
-        <button onClick={onClose} className="absolute top-8 right-8 z-50 bg-white/5 p-3 rounded-full hover:bg-red-500 transition-all border border-white/10">
-          <X size={20} className="text-white" />
-        </button>
+              {/* Video Player Responsivo */}
+              <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/5 shadow-inner">
+                <iframe
+                  src={aula.videoUrl.replace("watch?v=", "embed/")}
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+              </div>
+
+              {/* LEGENDA DA AULA (Aparece aqui) */}
+              {aula.descricao && (
+                <div className="bg-white/[0.03] p-4 rounded-xl border border-white/5">
+                   <p className="text-slate-400 text-sm leading-relaxed">
+                     {aula.descricao}
+                   </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

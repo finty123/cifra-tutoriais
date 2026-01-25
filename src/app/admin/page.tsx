@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Upload, ChevronLeft, Edit3, Save } from 'lucide-react';
-import { Modulo, Aula } from '../types/index';
+import { Modulo, Aula } from '@/types';
 
 export default function AdminPanel() {
   const [view, setView] = useState<'lista' | 'edit'>('lista');
